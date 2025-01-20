@@ -1,4 +1,7 @@
+
 import React, { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { CommandLineIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import { EnhancedLLM } from '../ai/enhanced-conversation';
 import { commands } from '../lib/commands';
 
@@ -48,7 +51,7 @@ const Terminal: React.FC = () => {
     setInput('');
     setIsProcessing(true);
 
-    // Add user message
+    // Add user message with animation
     setMessages(prev => [...prev, {
       role: 'user',
       content: userQuery,
@@ -68,7 +71,6 @@ const Terminal: React.FC = () => {
           response = { role: 'system', content: 'Unknown command. Type /help for available commands.' };
         }
       } else {
-        // Process with LLM if not a command
         const aiResponse = await llm.current.chat(userQuery);
         response = { role: 'assistant', content: aiResponse };
       }
@@ -84,8 +86,6 @@ const Terminal: React.FC = () => {
       if (error instanceof Error) {
         if (error.message.includes('GROQ_API_KEY')) {
           errorMessage = 'AI service is not properly configured. Please check API key.';
-        } else if (error.message.includes('Groq API error')) {
-          errorMessage = 'AI service is temporarily unavailable. Please try again.';
         } else {
           errorMessage = error.message;
         }
@@ -104,14 +104,21 @@ const Terminal: React.FC = () => {
   const renderMessage = (message: Message, index: number) => {
     const isUser = message.role === 'user';
     return (
-      <div key={index} 
-           className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-4`}>
-        <div className={`max-w-[80%] p-4 rounded-xl shadow-[0_0_15px_rgba(34,211,238,0.1)] backdrop-blur-sm
+      <motion.div
+        key={index}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-4`}
+      >
+        <div className={`max-w-[80%] p-4 rounded-xl backdrop-blur-lg shadow-[0_0_15px_rgba(34,211,238,0.1)] 
           ${isUser 
-            ? 'bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 rounded-br-none' 
+            ? 'bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 rounded-br-none from-cyan-900/50 to-transparent' 
             : message.role === 'system'
-              ? 'bg-violet-500/10 border border-violet-500/30 text-violet-300 rounded-bl-none'
-              : 'bg-blue-500/10 border border-blue-500/30 text-blue-300 rounded-bl-none'}`}>
+              ? 'bg-violet-500/10 border border-violet-500/30 text-violet-300 rounded-bl-none from-violet-900/50 to-transparent'
+              : 'bg-blue-500/10 border border-blue-500/30 text-blue-300 rounded-bl-none from-blue-900/50 to-transparent'}
+          bg-gradient-to-r`}
+        >
           <div className="whitespace-pre-wrap">
             {typeof message.content === 'string' 
               ? message.content 
@@ -121,63 +128,102 @@ const Terminal: React.FC = () => {
             {message.timestamp.toLocaleTimeString()}
           </div>
         </div>
-      </div>
+      </motion.div>
     );
   };
 
   return (
     <div className="flex flex-col h-screen bg-gray-900 text-cyan-400 bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 fixed inset-0 overflow-hidden">
       {/* Terminal Header */}
-      <div className="flex items-center justify-between p-3 bg-black/50 border-b border-cyan-500/30 shadow-lg backdrop-blur-sm">
+      <motion.div 
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex items-center justify-between p-3 bg-black/50 border-b border-cyan-500/30 shadow-lg backdrop-blur-sm"
+      >
         <div className="flex items-center space-x-2">
-          <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
-          <div className="w-3 h-3 rounded-full bg-yellow-500 animate-pulse delay-75" />
-          <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse delay-150" />
+          <div className="flex space-x-2">
+            <motion.div 
+              animate={{ scale: [1, 1.2, 1] }}
+              transition={{ repeat: Infinity, duration: 2 }}
+              className="w-3 h-3 rounded-full bg-red-500"
+            />
+            <motion.div 
+              animate={{ scale: [1, 1.2, 1] }}
+              transition={{ repeat: Infinity, duration: 2, delay: 0.3 }}
+              className="w-3 h-3 rounded-full bg-yellow-500"
+            />
+            <motion.div 
+              animate={{ scale: [1, 1.2, 1] }}
+              transition={{ repeat: Infinity, duration: 2, delay: 0.6 }}
+              className="w-3 h-3 rounded-full bg-green-500"
+            />
+          </div>
         </div>
         <span className="text-sm font-mono font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">
           LIQUBIT Terminal v2
         </span>
         <div className="w-16" />
-      </div>
+      </motion.div>
 
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-grid-pattern">
-        {messages.map((message, index) => renderMessage(message, index))}
+        <AnimatePresence>
+          {messages.map((message, index) => renderMessage(message, index))}
+        </AnimatePresence>
         {isProcessing && (
-          <div className="flex justify-start">
-            <div className="bg-gray-800 p-4 rounded-lg">
-              <div className="flex space-x-2">
-                <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" />
-                <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce delay-150" />
-                <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce delay-300" />
-              </div>
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="flex justify-start"
+          >
+            <div className="bg-gray-800/50 backdrop-blur-sm p-4 rounded-lg border border-cyan-500/20">
+              <motion.div 
+                animate={{ rotate: 360 }}
+                transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                className="w-6 h-6 text-cyan-400"
+              >
+                <ArrowPathIcon />
+              </motion.div>
             </div>
-          </div>
+          </motion.div>
         )}
         <div ref={messagesEndRef} />
       </div>
 
       {/* Input Form */}
-      <form onSubmit={handleSubmit} className="p-4 border-t border-cyan-500/30 bg-black/50 backdrop-blur-sm">
+      <motion.form
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        onSubmit={handleSubmit}
+        className="p-4 border-t border-cyan-500/30 bg-black/50 backdrop-blur-sm"
+      >
         <div className="flex items-center space-x-4">
-          <input
-            ref={inputRef}
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            className="flex-1 bg-cyan-950/50 text-cyan-300 rounded-lg px-4 py-3 border border-cyan-500/30 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-400 placeholder-cyan-700"
-            placeholder="Type a command (/help) or ask a question..."
-            disabled={isProcessing}
-          />
-          <button
+          <div className="relative flex-1">
+            <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+              <CommandLineIcon className="h-5 w-5 text-cyan-500/50" />
+            </div>
+            <input
+              ref={inputRef}
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              className="w-full bg-cyan-950/50 text-cyan-300 rounded-lg pl-12 pr-4 py-3 border border-cyan-500/30 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-400 placeholder-cyan-700"
+              placeholder="Type a command (/help) or ask a question..."
+              disabled={isProcessing}
+            />
+          </div>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
             type="submit"
             disabled={isProcessing}
             className="bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 px-6 py-3 rounded-lg hover:bg-cyan-500/20 focus:outline-none focus:ring-2 focus:ring-cyan-500 disabled:opacity-50 transition-all duration-200 hover:shadow-[0_0_15px_rgba(34,211,238,0.3)]"
           >
             Send
-          </button>
+          </motion.button>
         </div>
-      </form>
+      </motion.form>
     </div>
   );
 };
