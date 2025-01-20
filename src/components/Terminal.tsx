@@ -25,7 +25,7 @@ const Terminal: React.FC = () => {
 • /market [token] - Market overview or token data
 • /chart <token> - Display price chart
 • /help - Show all commands`,
-      timestamp: new Date()
+      timestamp: new Date(Date.now())
     }
   ]);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
@@ -120,7 +120,7 @@ const Terminal: React.FC = () => {
     setMessages(prev => [...prev, {
       role: 'user',
       content: userQuery,
-      timestamp: new Date()
+      timestamp: new Date(Date.now())
     }]);
 
     try {
@@ -137,13 +137,13 @@ const Terminal: React.FC = () => {
 
       setMessages(prev => [...prev, {
         ...response,
-        timestamp: new Date()
+        timestamp: new Date(Date.now())
       }]);
     } catch (error) {
       setMessages(prev => [...prev, {
         role: 'system',
         content: `Error: ${error instanceof Error ? error.message : 'Something went wrong'}`,
-        timestamp: new Date()
+        timestamp: new Date(Date.now())
       }]);
     } finally {
       setIsProcessing(false);
