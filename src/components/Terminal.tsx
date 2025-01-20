@@ -1,87 +1,71 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { CommandLineIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
-import { EnhancedLLM } from '../ai/enhanced-conversation';
-import { commands } from '../lib/commands';
+import { motion } from 'framer-motion';
+import { CommandLineIcon } from '@heroicons/react/24/outline';
 
 interface Message {
-  role: 'user' | 'assistant' | 'system' | 'chart';
-  content: string | any;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
   timestamp: Date;
 }
 
 const Terminal: React.FC = () => {
-  const [input, setInput] = useState<string>('');
+  const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
-  const [isProcessing, setIsProcessing] = useState<boolean>(false);
-  const inputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const llm = useRef(new EnhancedLLM());
 
   useEffect(() => {
     setMessages([{
       role: 'system',
-      content: 'Welcome to LIQUBIT Terminal v2! Type /help for available commands.',
+      content: 'Welcome to LIQUBIT Terminal! Type a command to begin.',
       timestamp: new Date()
     }]);
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isProcessing) return;
+    if (!input.trim()) return;
 
-    const userQuery = input.trim();
-    setInput('');
-    setIsProcessing(true);
-
-    setMessages(prev => [...prev, {
+    const userMessage = {
       role: 'user',
-      content: userQuery,
+      content: input.trim(),
       timestamp: new Date()
-    }]);
+    };
 
-    try {
-      const response = { role: 'system', content: 'Command processing...' };
-      setMessages(prev => [...prev, {
-        ...response,
-        timestamp: new Date()
-      }]);
-    } catch (error) {
-      console.error('Error:', error);
-    } finally {
-      setIsProcessing(false);
-    }
+    setMessages(prev => [...prev, userMessage]);
+    setInput('');
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gray-900">
-      <div className="flex-1 overflow-y-auto p-4">
+    <div className="flex flex-col h-screen bg-gray-900 text-white">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((msg, idx) => (
-          <div key={idx} className="mb-4">
-            <div className={`p-3 rounded ${
-              msg.role === 'user' ? 'bg-blue-500 ml-auto' : 'bg-gray-700'
-            } max-w-[80%]`}>
-              {msg.content}
-            </div>
-          </div>
+          <motion.div
+            key={idx}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={`p-3 rounded-lg ${
+              msg.role === 'user' ? 'bg-blue-600 ml-auto' : 'bg-gray-700'
+            } max-w-[80%]`}
+          >
+            {msg.content}
+          </motion.div>
         ))}
         <div ref={messagesEndRef} />
       </div>
 
-      <form onSubmit={handleSubmit} className="p-4 bg-gray-800">
-        <div className="flex gap-2">
+      <form onSubmit={handleSubmit} className="p-4 bg-gray-800 border-t border-gray-700">
+        <div className="flex items-center gap-2">
+          <CommandLineIcon className="w-5 h-5 text-gray-400" />
           <input
-            ref={inputRef}
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            className="flex-1 p-2 rounded bg-gray-700 text-white"
+            className="flex-1 bg-gray-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="Type a command..."
           />
           <button
             type="submit"
-            className="px-4 py-2 bg-blue-500 rounded text-white"
-            disabled={isProcessing}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             Send
           </button>
