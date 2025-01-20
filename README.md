@@ -1,146 +1,180 @@
-# 🌊 LIQUBIT ($LIQ)
+# 🧠 LIQUBIT ($LIQ)
 
-> Quantum Trading Intelligence
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Inference](https://img.shields.io/badge/inference-groq-green.svg)
+![Model](https://img.shields.io/badge/model-llama--3.3--70b-red.svg)
+![Chain](https://img.shields.io/badge/networks-solana%20|%20base-purple.svg)
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Built with React](https://img.shields.io/badge/Built%20with-React-blue)](https://reactjs.org/)
-[![Powered by cookie.fun](https://img.shields.io/badge/Powered%20by-cookie.fun-green)](https://cookie.fun)
+> Advancing on-chain intelligence through LLM-powered market analysis
 
-LIQUBIT is a quantum-inspired autonomous trading protocol that leverages advanced AI and on-chain analytics to provide strategic market intelligence across Solana and Base networks. By combining quantum computing principles with real-time market data and social sentiment analysis, LIQUBIT offers next-generation trading capabilities.
+## 🎯 Mission
+LIQUBIT combines state-of-the-art language models with real-time on-chain analytics to create a sophisticated market intelligence protocol. By leveraging the LLaMA-3.3-70B model through Groq inference, we're pushing the boundaries of what's possible in algorithmic trading.
 
-## 🌟 Features
+## 🔬 Technical Overview
 
-### Quantum Trading Intelligence
-- Quantum-inspired market analysis
-- Wave function collapse prediction modeling
-- Superposition state analysis
-- Quantum entropy risk assessment
-- Quantum-classical hybrid optimization
+### Core Components
 
-### Investment Protocol
-- Cross-chain liquidity analysis
-- Multi-chain treasury management
-- Automated portfolio rebalancing
-- Quantum-secured governance
-- Transparent execution
-
-### Data Intelligence
-- Integration with cookie.fun for AI agent analytics
-- Real-time mindshare tracking
-- Smart engagement metrics
-- Holder growth analysis
-- Market dominance monitoring
-
-## 🚀 Getting Started
-
-### Prerequisites
-```bash
-node >= 16.0.0
-npm >= 8.0.0
+```mermaid
+graph TD
+    A[Data Ingestion] --> B[LLM Processing]
+    B --> C[Analysis Engine]
+    C --> D[Terminal Interface]
+    
+    subgraph "Data Layer"
+    A1[cookie.fun API] --> A
+    A2[On-chain Data] --> A
+    A3[Social Metrics] --> A
+    end
+    
+    subgraph "AI Layer"
+    B1[Groq Inference] --> B
+    B2[Context Processing] --> B
+    B3[Prompt Engineering] --> B
+    end
 ```
 
-### Installation
+### Key Technologies
 
-1. Clone the repository
-```bash
-git clone https://github.com/yourusername/liqubit.git
-cd liqubit
+- **LLM Integration**: LLaMA-3.3-70B with Groq inference
+- **Data Sources**:
+  - cookie.fun for AI agent analytics
+  - Native RPC nodes for on-chain data
+  - Social sentiment via X API
+- **Networks**: Solana & Base
+- **Processing**: Real-time data correlation and analysis
+
+## 🛠 Development Stack
+
+### AI/ML Pipeline
+```python
+from transformers import LlamaTokenizer, LlamaForCausalInference
+import groq
+
+# Example of our inference pipeline
+class LiqubitInference:
+    def __init__(self):
+        self.tokenizer = LlamaTokenizer.from_pretrained("liqubit/llama-3.3-70b")
+        self.client = groq.Client()
+    
+    async def process_market_data(self, context):
+        # Implementation details in docs/inference.md
+        pass
 ```
 
-2. Install dependencies
-```bash
-npm install
+### Data Integration
+```typescript
+interface DataSource {
+  fetchMarketData(): Promise<MarketData>;
+  fetchOnChainMetrics(): Promise<ChainMetrics>;
+  fetchSocialSentiment(): Promise<SentimentData>;
+}
 ```
 
-3. Set up environment variables
-```bash
-cp .env.example .env
-# Edit .env with your API keys and configuration
+### Analysis Engine
+```python
+class MarketAnalysis:
+    def __init__(self, model: LiqubitInference):
+        self.model = model
+        self.metrics = MetricsAggregator()
+    
+    async def analyze_token(self, token: str) -> Analysis:
+        # Implementation details in docs/analysis.md
+        pass
 ```
 
-4. Start the development server
-```bash
-npm run dev
-```
+## 🔄 Current Focus Areas
 
-## 📁 Repository Structure
+1. **LLM Optimization**
+   - Prompt engineering for market analysis
+   - Context window optimization
+   - Response latency reduction
 
-```
-liqubit/
-├── src/
-│   ├── components/          # React components
-│   ├── contracts/           # Smart contracts
-│   │   ├── solana/         # Solana programs
-│   │   └── base/           # Base contracts
-│   ├── data/               # Data ingestion layer
-│   ├── ai/                 # AI models and analysis
-│   └── utils/              # Utility functions
-├── public/                 # Static assets
-├── tests/                  # Test suites
-└── docs/                   # Documentation
-```
+2. **Data Integration**
+   - Real-time data pipeline optimization
+   - Cross-chain data correlation
+   - Social sentiment analysis improvements
 
-## 🛠 Technology Stack
-
-### Frontend
-- React.js
-- TailwindCSS
-- Lucide Icons
-- Web3.js/Ethers.js
-
-### Backend
-- Node.js
-- TypeScript
-- WebSocket
-- cookie.fun API
-
-### Blockchain
-- Solana Programs (Rust)
-- Base Contracts (Solidity)
-- Cross-chain bridges
-
-### AI/ML
-- PyTorch
-- Transformers
-- Quantum-inspired algorithms
-
-## 🔗 Smart Contracts
-
-### Solana Program
-- Program ID: `<your_program_id>`
-- Explorer: [Solana Explorer](https://explorer.solana.com/address/your_program_id)
-
-### Base Contract
-- Contract Address: `<your_contract_address>`
-- Explorer: [Base Explorer](https://basescan.org/address/your_contract_address)
+3. **Analysis Capabilities**
+   - Advanced pattern recognition
+   - Risk assessment models
+   - Predictive analytics
 
 ## 🤝 Contributing
 
-We welcome contributions to LIQUBIT! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details on how to get started.
+We're actively seeking contributors with expertise in:
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+- **Large Language Models**
+  - Prompt engineering
+  - Model fine-tuning
+  - Inference optimization
+
+- **Market Analysis**
+  - Technical analysis
+  - On-chain analytics
+  - Sentiment analysis
+
+- **Development**
+  - Solana/Base development
+  - High-performance TypeScript
+  - Python ML/Data pipelines
+
+### Getting Started
+
+1. **Development Environment**
+```bash
+git clone https://github.com/liqubit/liqubit-core.git
+cd liqubit-core
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+npm install
+```
+
+2. **Running Tests**
+```bash
+pytest tests/
+npm test
+```
+
+3. **Local Development**
+```bash
+# Start development environment
+npm run dev
+
+# Run AI pipeline locally
+python scripts/run_pipeline.py
+```
+
+
+## 🔗 Resources
+
+- [Technical Documentation](https://docs.liqubit.xyz)
+- [API Reference](https://docs.liqubit.xyz/api)
+- [Architecture Overview](https://docs.liqubit.xyz/architecture)
+- [Contributing Guide](https://docs.liqubit.xyz/contributing)
+
+
+## 📈 Roadmap Q1 2024
+
+- [ ] LLaMA model fine-tuning for market analysis
+- [ ] Advanced on-chain analytics integration
+- [ ] Cross-chain correlation engine
+- [ ] Automated trading module beta
+
+## 🤖 Join the Development
+
+We're building the future of on-chain intelligence. If you're passionate about:
+- Large Language Models
+- Blockchain
+- AI Agents
+- Market Analysis
+- High-Performance Computing
+
+We want to work with you. Reach out:
+- [Discord](https://discord.gg/liqubit-dev)
+- [GitHub Issues](https://github.com/liqubit/liqubit-core/issues)
 
 ## 📜 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT License - see [LICENSE](LICENSE) for details
 
-## 🌐 Links
-
-- [Website](https://liqubit.xyz)
-- [Documentation](https://docs.liqubit.xyz)
-- [Twitter](https://twitter.com/LiqubitDAO)
-- [Discord](https://discord.gg/liqubit)
-
-## 🔒 Security
-
-For security concerns, please email security@liqubit.xyz or open a security advisory on GitHub.
-
-## 🙏 Acknowledgments
-
-- [cookie.fun](https://cookie.fun) for AI agent analytics
-- Solana and Base communities
-- All our contributors and supporters
