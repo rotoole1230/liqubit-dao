@@ -7,7 +7,15 @@ module.exports = {
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
-    extend: {},
+    extend: {
+      fontFamily: {
+        terminal: ['Share Tech Mono', 'monospace'],
+        cyber: ['Cyber', 'monospace'],
+      },
+      animation: {
+        'terminal-glow': 'glow 2s ease-in-out infinite',
+      },
+    },
   },
   plugins: [
     require('tailwind-scrollbar')({ nocompatible: true }),

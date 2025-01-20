@@ -17,6 +17,15 @@ const Terminal: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const llm = useRef(new EnhancedLLM());
 
+  // Add typewriter effect for welcome message
+  useEffect(() => {
+    setMessages([{
+      role: 'system',
+      content: '> LIQUBIT TERMINAL v2.0 [INITIALIZED]\n> Ready for market analysis...',
+      timestamp: new Date()
+    }]);
+  }, []);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -66,25 +75,28 @@ const Terminal: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-gray-900 text-white bg-grid-pattern relative overflow-hidden">
-      <div className="fixed top-0 left-0 w-full h-24 bg-gradient-to-b from-cyan-500/20 to-transparent pointer-events-none z-10" />
-      <div className="fixed bottom-0 left-0 w-full h-24 bg-gradient-to-t from-cyan-500/20 to-transparent pointer-events-none z-10" />
-      <div className="flex-1 overflow-y-auto px-3 py-4 md:p-4 space-y-3 relative scrollbar-thin scrollbar-thumb-cyan-500/30 scrollbar-track-transparent">
-        <div className="absolute top-4 left-4 text-cyan-500 text-xs font-mono animate-pulse">
-          LIQUBIT TERMINAL v1.0
+    <div className="flex flex-col h-[100dvh] bg-[#0a0f16] text-[#00ff9d] font-terminal relative overflow-hidden">
+      <div className="fixed top-0 left-0 w-full h-24 bg-gradient-to-b from-[#00ff9d]/5 to-transparent pointer-events-none z-10" />
+      <div className="fixed bottom-0 left-0 w-full h-24 bg-gradient-to-t from-[#00ff9d]/5 to-transparent pointer-events-none z-10" />
+      <div className="flex-1 overflow-y-auto px-3 py-4 md:p-4 space-y-3 relative scrollbar-thin scrollbar-thumb-[#00ff9d]/30 scrollbar-track-transparent">
+        <div className="fixed top-2 right-2 text-[#00ff9d]/40 text-[10px] font-terminal tracking-wider">
+          <div className="flex items-center gap-1">
+            <CommandLineIcon className="w-3 h-3" />
+            SYSTEM:ACTIVE
+          </div>
         </div>
         {messages.map((msg, idx) => (
           <motion.div
             key={idx}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className={`p-4 rounded-lg border ${
+            className={`p-3 rounded border-l-2 ${
               msg.role === 'user' 
-                ? 'bg-cyan-900/30 border-cyan-500/50 ml-auto text-cyan-100' 
+                ? 'bg-[#00ff9d]/5 border-[#00ff9d] ml-auto text-[#00ff9d]' 
                 : msg.role === 'system' 
-                  ? 'bg-purple-900/30 border-purple-500/50 text-purple-100' 
-                  : 'bg-green-900/30 border-green-500/50 text-green-100'
-            } max-w-[80%] backdrop-blur-sm shadow-lg`}
+                  ? 'bg-[#1a1f2c] border-[#00ff9d]/50 font-terminal tracking-wider text-[#00ff9d]/80' 
+                  : 'bg-[#131922] border-[#00ff9d]/70 text-[#00ff9d]/90'
+            } max-w-[85%] backdrop-blur-sm shadow-lg font-mono text-sm`}
           >
             <p className="text-sm text-gray-300 mb-1">
               {msg.role.charAt(0).toUpperCase() + msg.role.slice(1)}
