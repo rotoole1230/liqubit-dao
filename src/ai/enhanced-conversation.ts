@@ -29,7 +29,7 @@ export class EnhancedLLM {
 
   constructor() {
     this.dataAggregator = new MarketDataAggregator();
-    this.groqApiKey = process.env.GROQ_API_KEY || '';
+    this.groqApiKey = process.env.NEXT_PUBLIC_GROQ_API_KEY || '';
     this.baseUrl = 'https://api.groq.com/v1/chat/completions';
     this.memory = {
       recentTokens: [],
