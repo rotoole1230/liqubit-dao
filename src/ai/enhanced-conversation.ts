@@ -43,7 +43,7 @@ export class EnhancedLLM {
 
   private async processWithGroq(prompt: string): Promise<string> {
     try {
-      const response = await fetch(this.baseUrl, {
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
