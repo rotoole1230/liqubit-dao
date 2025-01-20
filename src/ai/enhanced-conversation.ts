@@ -148,14 +148,14 @@ Format your response to be easily readable with clear sections and data points.`
 
   private async processWithGroq(prompt: string): Promise<string> {
     try {
-      const response = await fetch('https://api.groq.com/v1/completions', {
+      const response = await fetch('https://api.groq.com/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${this.groqApiKey}`,
         },
         body: JSON.stringify({
-          model: 'llama-3-3-70b',
+          model: 'llama2-70b-4096',
           messages: [{ role: 'user', content: prompt }],
           temperature: 0.7,
           max_tokens: 1500,
