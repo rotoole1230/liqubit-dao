@@ -17,17 +17,19 @@ interface ChartData {
 
 const Terminal: React.FC = () => {
   const [input, setInput] = useState<string>('');
-  const [messages, setMessages] = useState<Message[]>([
-    {
+  const [messages, setMessages] = useState<Message[]>([]);
+  
+  useEffect(() => {
+    setMessages([{
       role: 'system',
       content: `Welcome to LIQUBIT Terminal v2! Available commands:
 • /analyze <token> - Deep analysis of a token
 • /market [token] - Market overview or token data
 • /chart <token> - Display price chart
 • /help - Show all commands`,
-      timestamp: new Date(Date.now())
-    }
-  ]);
+      timestamp: new Date()
+    }]);
+  }, []);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
