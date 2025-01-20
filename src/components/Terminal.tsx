@@ -78,9 +78,22 @@ const Terminal: React.FC = () => {
         timestamp: new Date()
       }]);
     } catch (error) {
+      console.error('Terminal error:', error);
+      let errorMessage = 'An unexpected error occurred';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('GROQ_API_KEY')) {
+          errorMessage = 'AI service is not properly configured. Please check API key.';
+        } else if (error.message.includes('Groq API error')) {
+          errorMessage = 'AI service is temporarily unavailable. Please try again.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       setMessages(prev => [...prev, {
         role: 'system',
-        content: `Error: ${error instanceof Error ? error.message : 'Something went wrong'}`,
+        content: `Error: ${errorMessage}`,
         timestamp: new Date()
       }]);
     } finally {
