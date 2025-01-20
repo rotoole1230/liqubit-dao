@@ -66,20 +66,25 @@ const Terminal: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gray-900 text-white">
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+    <div className="flex flex-col h-screen bg-gray-900 text-white bg-grid-pattern relative">
+      <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-b from-cyan-500/20 to-transparent pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-full h-24 bg-gradient-to-t from-cyan-500/20 to-transparent pointer-events-none" />
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 relative">
+        <div className="absolute top-4 left-4 text-cyan-500 text-xs font-mono animate-pulse">
+          LIQUBIT TERMINAL v1.0
+        </div>
         {messages.map((msg, idx) => (
           <motion.div
             key={idx}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className={`p-4 rounded-lg ${
+            className={`p-4 rounded-lg border ${
               msg.role === 'user' 
-                ? 'bg-blue-600 ml-auto' 
+                ? 'bg-cyan-900/30 border-cyan-500/50 ml-auto text-cyan-100' 
                 : msg.role === 'system' 
-                  ? 'bg-gray-700' 
-                  : 'bg-green-600'
-            } max-w-[80%]`}
+                  ? 'bg-purple-900/30 border-purple-500/50 text-purple-100' 
+                  : 'bg-green-900/30 border-green-500/50 text-green-100'
+            } max-w-[80%] backdrop-blur-sm shadow-lg`}
           >
             <p className="text-sm text-gray-300 mb-1">
               {msg.role.charAt(0).toUpperCase() + msg.role.slice(1)}
@@ -99,23 +104,23 @@ const Terminal: React.FC = () => {
         <div ref={messagesEndRef} />
       </div>
 
-      <form onSubmit={handleSubmit} className="p-4 bg-gray-800 border-t border-gray-700">
+      <form onSubmit={handleSubmit} className="p-4 bg-gray-900/50 border-t border-cyan-500/30 backdrop-blur-sm">
         <div className="flex items-center gap-2">
-          <CommandLineIcon className="w-5 h-5 text-gray-400" />
+          <CommandLineIcon className="w-5 h-5 text-cyan-500" />
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            className="flex-1 bg-gray-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 bg-gray-800/50 text-cyan-100 px-4 py-2 rounded-lg border border-cyan-500/30 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 placeholder-cyan-300/30"
             placeholder="Ask about crypto markets..."
             disabled={isLoading}
           />
           <button
             type="submit"
             disabled={isLoading}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+            className="px-4 py-2 bg-cyan-900/50 text-cyan-100 rounded-lg border border-cyan-500/30 hover:bg-cyan-800/50 hover:border-cyan-400 transition-all disabled:opacity-50 font-mono"
           >
-            Send
+            EXECUTE
           </button>
         </div>
       </form>
