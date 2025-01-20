@@ -1,0 +1,30 @@
+{
+  "name": "workspace",
+  "version": "1.0.0",
+  "description": "![License](https://img.shields.io/badge/license-MIT-blue.svg) ![Inference](https://img.shields.io/badge/inference-groq-green.svg) ![Model](https://img.shields.io/badge/model-llama--3.3--70b-red.svg) ![Chain](https://img.shields.io/badge/networks-solana%20|%20base-purple.svg)",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "@types/node": "^22.10.7",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.2.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.3"
+  },
+  "dependencies": {
+    "@solana/web3.js": "^1.98.0",
+    "axios": "^1.7.9",
+    "dotenv": "^16.4.7",
+    "web3": "^4.16.0"
+  }
+}
