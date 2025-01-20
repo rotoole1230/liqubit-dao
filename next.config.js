@@ -1,4 +1,4 @@
-// next.config.js
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -13,5 +13,11 @@ const nextConfig = {
     return config;
   },
 };
+
+// Configure hostname and port for Replit
+if (process.env.REPL_SLUG) {
+  nextConfig.hostname = '0.0.0.0';
+  nextConfig.port = 3000;
+}
 
 module.exports = nextConfig;
