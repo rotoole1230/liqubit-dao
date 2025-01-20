@@ -66,10 +66,10 @@ const Terminal: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gray-900 text-white bg-grid-pattern relative">
-      <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-b from-cyan-500/20 to-transparent pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-full h-24 bg-gradient-to-t from-cyan-500/20 to-transparent pointer-events-none" />
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 relative">
+    <div className="flex flex-col h-[100dvh] bg-gray-900 text-white bg-grid-pattern relative overflow-hidden">
+      <div className="fixed top-0 left-0 w-full h-24 bg-gradient-to-b from-cyan-500/20 to-transparent pointer-events-none z-10" />
+      <div className="fixed bottom-0 left-0 w-full h-24 bg-gradient-to-t from-cyan-500/20 to-transparent pointer-events-none z-10" />
+      <div className="flex-1 overflow-y-auto px-3 py-4 md:p-4 space-y-3 relative scrollbar-thin scrollbar-thumb-cyan-500/30 scrollbar-track-transparent">
         <div className="absolute top-4 left-4 text-cyan-500 text-xs font-mono animate-pulse">
           LIQUBIT TERMINAL v1.0
         </div>
@@ -104,8 +104,8 @@ const Terminal: React.FC = () => {
         <div ref={messagesEndRef} />
       </div>
 
-      <form onSubmit={handleSubmit} className="p-4 bg-gray-900/50 border-t border-cyan-500/30 backdrop-blur-sm">
-        <div className="flex items-center gap-2">
+      <form onSubmit={handleSubmit} className="sticky bottom-0 p-3 md:p-4 bg-gray-900/80 border-t border-cyan-500/30 backdrop-blur-md">
+        <div className="flex items-center gap-2 max-w-4xl mx-auto">
           <CommandLineIcon className="w-5 h-5 text-cyan-500" />
           <input
             type="text"
