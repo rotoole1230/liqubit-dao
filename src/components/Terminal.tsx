@@ -1,12 +1,18 @@
-// src/components/Terminal.tsx
 import React, { useState, useRef, useEffect } from 'react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { commands } from '../lib/commands';
 import { ConversationalLLM } from '../ai/conversation';
 
 interface Message {
-  role: 'user' | 'assistant' | 'system';
-  content: string;
+  role: 'user' | 'assistant' | 'system' | 'chart';
+  content: string | any;
   timestamp: Date;
+}
+
+interface ChartData {
+  name: string;
+  value: number;
 }
 
 const Terminal: React.FC = () => {
@@ -14,12 +20,11 @@ const Terminal: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'system',
-      content: `Welcome to LIQUBIT! I'm your AI crypto market analyst. Feel free to ask me anything about crypto markets, specific tokens, or general market trends. Some things you can ask me:
-
-• "How is the market looking today?"
-• "What's your analysis on SOL?"
-• "Compare BTC and ETH performance"
-• "What are the key metrics for LIQ?"`,
+      content: `Welcome to LIQUBIT Terminal v2! Available commands:
+• /analyze <token> - Deep analysis of a token
+• /market [token] - Market overview or token data
+• /chart <token> - Display price chart
+• /help - Show all commands`,
       timestamp: new Date()
     }
   ]);
@@ -28,13 +33,80 @@ const Terminal: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const llm = useRef(new ConversationalLLM());
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  const parseCommand = (input: string) => {
+    if (!input.startsWith('/')) return null;
+    const parts = input.slice(1).split(' ');
+    const command = parts[0];
+    const args = parts.slice(1);
+    return { command, args };
   };
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+  const handleCommand = async (commandStr: string, args: string[]) => {
+    if (commands[commandStr]) {
+      try {
+        const result = await commands[commandStr].execute(args);
+        if (commandStr === 'market' && args[0]) {
+          // If it's market data for a specific token, parse and display as chart
+          const data = JSON.parse(result);
+          return {
+            role: 'chart',
+            content: {
+              data: [
+                { name: '24h', value: data.metrics.price },
+                { name: 'High', value: data.metrics.high24h },
+                { name: 'Low', value: data.metrics.low24h }
+              ],
+              token: args[0].toUpperCase()
+            }
+          };
+        }
+        return { role: 'system', content: result };
+      } catch (error) {
+        return {
+          role: 'system',
+          content: `Error executing command: ${error instanceof Error ? error.message : 'Unknown error'}`
+        };
+      }
+    }
+    return { role: 'system', content: 'Unknown command. Type /help for available commands.' };
+  };
+
+  const renderMessage = (message: Message) => {
+    if (message.role === 'chart' && typeof message.content === 'object') {
+      return (
+        <div className="h-64 w-full bg-gray-800 rounded-lg p-4">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={message.content.data}>
+              <XAxis dataKey="name" stroke="#fff" />
+              <YAxis stroke="#fff" />
+              <Tooltip />
+              <Line type="monotone" dataKey="value" stroke="#8884d8" />
+            </LineChart>
+          </ResponsiveContainer>
+          <div className="text-center mt-2 text-sm text-gray-400">
+            {message.content.token} Price Chart
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className={`max-w-3/4 p-3 rounded-lg ${
+        message.role === 'user'
+          ? 'bg-blue-600 text-white'
+          : message.role === 'system'
+          ? 'bg-gray-700 text-gray-200'
+          : 'bg-gray-800 text-gray-100'
+      }`}>
+        <div className="whitespace-pre-wrap">
+          {typeof message.content === 'string' ? message.content : JSON.stringify(message.content, null, 2)}
+        </div>
+        <div className="text-xs opacity-50 mt-1">
+          {message.timestamp.toLocaleTimeString()}
+        </div>
+      </div>
+    );
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,12 +124,19 @@ const Terminal: React.FC = () => {
     }]);
 
     try {
-      const response = await llm.current.chat(userQuery);
+      const parsedCommand = parseCommand(userQuery);
+      let response;
 
-      // Add AI response
+      if (parsedCommand) {
+        const { command, args } = parsedCommand;
+        response = await handleCommand(command, args);
+      } else {
+        const aiResponse = await llm.current.chat(userQuery);
+        response = { role: 'assistant', content: aiResponse };
+      }
+
       setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: response,
+        ...response,
         timestamp: new Date()
       }]);
     } catch (error) {
@@ -71,6 +150,9 @@ const Terminal: React.FC = () => {
     }
   };
 
+  // Rest of the component remains the same...
+  // (Terminal header, message rendering, input form)
+
   return (
     <div className="flex flex-col h-full bg-gray-900 text-gray-100">
       {/* Terminal Header */}
@@ -80,32 +162,16 @@ const Terminal: React.FC = () => {
           <div className="w-3 h-3 rounded-full bg-yellow-500" />
           <div className="w-3 h-3 rounded-full bg-green-500" />
         </div>
-        <span className="text-sm font-mono">LIQUBIT Chat Interface</span>
+        <span className="text-sm font-mono">LIQUBIT Terminal v2</span>
       </div>
 
-      {/* Chat Messages */}
+      {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((message, index) => (
-          <div
-            key={index}
-            className={`flex ${
-              message.role === 'user' ? 'justify-end' : 'justify-start'
-            }`}
-          >
-            <div
-              className={`max-w-3/4 p-3 rounded-lg ${
-                message.role === 'user'
-                  ? 'bg-blue-600 text-white'
-                  : message.role === 'system'
-                  ? 'bg-gray-700 text-gray-200'
-                  : 'bg-gray-800 text-gray-100'
-              }`}
-            >
-              <div className="whitespace-pre-wrap">{message.content}</div>
-              <div className="text-xs opacity-50 mt-1">
-                {message.timestamp.toLocaleTimeString()}
-              </div>
-            </div>
+          <div key={index} className={`flex ${
+            message.role === 'user' ? 'justify-end' : 'justify-start'
+          }`}>
+            {renderMessage(message)}
           </div>
         ))}
         {isProcessing && (
@@ -131,7 +197,7 @@ const Terminal: React.FC = () => {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             className="flex-1 bg-gray-800 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Ask LIQUBIT anything about crypto markets..."
+            placeholder="Type a command (/help) or ask a question..."
             disabled={isProcessing}
           />
           <button
