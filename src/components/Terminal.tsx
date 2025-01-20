@@ -80,7 +80,7 @@ const Terminal: React.FC = () => {
     } catch (error) {
       console.error('Terminal error:', error);
       let errorMessage = 'An unexpected error occurred';
-      
+
       if (error instanceof Error) {
         if (error.message.includes('GROQ_API_KEY')) {
           errorMessage = 'AI service is not properly configured. Please check API key.';
@@ -90,7 +90,7 @@ const Terminal: React.FC = () => {
           errorMessage = error.message;
         }
       }
-      
+
       setMessages(prev => [...prev, {
         role: 'system',
         content: `Error: ${errorMessage}`,

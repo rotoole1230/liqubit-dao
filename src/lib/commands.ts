@@ -1,4 +1,3 @@
-// src/lib/commands.ts
 import { EnhancedLLM } from '../ai/enhanced-conversation';
 import { MarketDataAggregator } from '../data/market-data-aggregator';
 
@@ -45,18 +44,9 @@ export const commands: CommandRegistry = {
 
   help: {
     description: 'Show available commands',
-    usage: 'help [command]',
-    execute: async (args: string[]) => {
-      const [command] = args;
-      if (command) {
-        const cmd = commands[command];
-        if (!cmd) {
-          throw new Error(`Unknown command: ${command}`);
-        }
-        return `${command} - ${cmd.description}\nUsage: ${cmd.usage}`;
-      }
+    execute: async () => {
       return Object.entries(commands)
-        .map(([name, cmd]) => `${name} - ${cmd.description}`)
+        .map(([key, cmd]) => `/${key} - ${cmd.description}`)
         .join('\n');
     }
   }
