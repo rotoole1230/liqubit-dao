@@ -106,12 +106,12 @@ const Terminal: React.FC = () => {
     return (
       <div key={index} 
            className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-4`}>
-        <div className={`max-w-[80%] p-4 rounded-xl shadow-lg 
+        <div className={`max-w-[80%] p-4 rounded-xl shadow-[0_0_15px_rgba(34,211,238,0.1)] backdrop-blur-sm
           ${isUser 
-            ? 'bg-blue-600 text-white rounded-br-none' 
+            ? 'bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 rounded-br-none' 
             : message.role === 'system'
-              ? 'bg-gray-700 text-gray-200 rounded-bl-none'
-              : 'bg-indigo-600 text-white rounded-bl-none'}`}>
+              ? 'bg-violet-500/10 border border-violet-500/30 text-violet-300 rounded-bl-none'
+              : 'bg-blue-500/10 border border-blue-500/30 text-blue-300 rounded-bl-none'}`}>
           <div className="whitespace-pre-wrap">
             {typeof message.content === 'string' 
               ? message.content 
@@ -126,20 +126,22 @@ const Terminal: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gray-900 text-gray-100">
+    <div className="flex flex-col h-screen bg-gray-900 text-cyan-400 bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900">
       {/* Terminal Header */}
-      <div className="flex items-center justify-between p-3 bg-gray-800 border-b border-gray-700">
+      <div className="flex items-center justify-between p-3 bg-black/50 border-b border-cyan-500/30 shadow-lg backdrop-blur-sm">
         <div className="flex items-center space-x-2">
-          <div className="w-3 h-3 rounded-full bg-red-500" />
-          <div className="w-3 h-3 rounded-full bg-yellow-500" />
-          <div className="w-3 h-3 rounded-full bg-green-500" />
+          <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
+          <div className="w-3 h-3 rounded-full bg-yellow-500 animate-pulse delay-75" />
+          <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse delay-150" />
         </div>
-        <span className="text-sm font-mono font-bold">LIQUBIT Terminal v2</span>
+        <span className="text-sm font-mono font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">
+          LIQUBIT Terminal v2
+        </span>
         <div className="w-16" />
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-4">
+      <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-grid-pattern">
         {messages.map((message, index) => renderMessage(message, index))}
         {isProcessing && (
           <div className="flex justify-start">
@@ -156,21 +158,21 @@ const Terminal: React.FC = () => {
       </div>
 
       {/* Input Form */}
-      <form onSubmit={handleSubmit} className="p-4 border-t border-gray-700 bg-gray-800">
+      <form onSubmit={handleSubmit} className="p-4 border-t border-cyan-500/30 bg-black/50 backdrop-blur-sm">
         <div className="flex items-center space-x-4">
           <input
             ref={inputRef}
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            className="flex-1 bg-gray-900 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 bg-cyan-950/50 text-cyan-300 rounded-lg px-4 py-3 border border-cyan-500/30 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-400 placeholder-cyan-700"
             placeholder="Type a command (/help) or ask a question..."
             disabled={isProcessing}
           />
           <button
             type="submit"
             disabled={isProcessing}
-            className="bg-blue-600 px-6 py-3 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 transition-colors duration-200"
+            className="bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 px-6 py-3 rounded-lg hover:bg-cyan-500/20 focus:outline-none focus:ring-2 focus:ring-cyan-500 disabled:opacity-50 transition-all duration-200 hover:shadow-[0_0_15px_rgba(34,211,238,0.3)]"
           >
             Send
           </button>
