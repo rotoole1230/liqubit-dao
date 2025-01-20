@@ -1,9 +1,9 @@
+
 import { EnhancedLLM } from '../ai/enhanced-conversation';
 import { MarketDataAggregator } from '../data/market-data-aggregator';
 
 export interface CommandHandler {
   description: string;
-  usage: string;
   execute: (args: string[]) => Promise<string>;
 }
 
@@ -17,7 +17,6 @@ const marketData = new MarketDataAggregator();
 export const commands: CommandRegistry = {
   analyze: {
     description: 'Analyze a cryptocurrency token',
-    usage: 'analyze <token> [timeframe]',
     execute: async (args: string[]) => {
       const [token, timeframe = '24h'] = args;
       if (!token) {
@@ -30,7 +29,6 @@ export const commands: CommandRegistry = {
 
   market: {
     description: 'Get market overview or specific token data',
-    usage: 'market [token]',
     execute: async (args: string[]) => {
       const [token] = args;
       if (token) {

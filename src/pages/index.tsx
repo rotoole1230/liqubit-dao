@@ -1,10 +1,13 @@
 
+import React from 'react';
 import Terminal from '../components/Terminal';
 
-export default function Home() {
+const HomePage: React.FC = () => {
   return (
-    <main className="min-h-screen bg-gray-900">
+    <div className="h-screen bg-gray-900">
       <Terminal />
-    </main>
+    </div>
   );
-}
+};
+
+export default HomePage;
