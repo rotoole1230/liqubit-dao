@@ -69,7 +69,7 @@ Format your response as a JSON object with the following structure:
           'Authorization': `Bearer ${this.groqApiKey}`,
         },
         body: JSON.stringify({
-          model: 'llama-3-3-70b',
+          model: 'llama-3.3-70b-versatile',
           messages: [{ role: 'user', content: prompt }],
           temperature: 0.7,
           max_tokens: 1000,

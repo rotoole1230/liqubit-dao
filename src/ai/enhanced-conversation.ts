@@ -50,7 +50,7 @@ export class EnhancedLLM {
           'Authorization': `Bearer ${this.groqApiKey}`,
         },
         body: JSON.stringify({
-          model: 'llama2-70b-4096',
+          model: 'llama-3.3-70b-versatile',
           messages: [
             {
               role: 'system',
