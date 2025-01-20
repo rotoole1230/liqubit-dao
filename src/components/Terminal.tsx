@@ -126,7 +126,7 @@ const Terminal: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gray-900 text-cyan-400 bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900">
+    <div className="flex flex-col h-screen bg-gray-900 text-cyan-400 bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 fixed inset-0 overflow-hidden">
       {/* Terminal Header */}
       <div className="flex items-center justify-between p-3 bg-black/50 border-b border-cyan-500/30 shadow-lg backdrop-blur-sm">
         <div className="flex items-center space-x-2">
