@@ -13,6 +13,7 @@
 2) Cookie.fun integration in process (REQUEST TO DAO OUT); Data swarms to track mindshare and other analytics to be a core functionality
 3) No token yet. Much work to be done enhancing data layer. The MVP is capable of processing LLM chat completions with llama-3.3-70b-versatile
 4) Socials presence in process
+5) No compute or paid API investments. Bootstrapped. Currently not deployed.
 
 ## 🎯 Mission
 LIQUBIT combines state-of-the-art language models with real-time on-chain analytics to create a sophisticated market intelligence protocol. By leveraging the LLaMA-3.3-70B model through Groq inference, we're pushing the boundaries of what's possible in AI crypto market analysis.
