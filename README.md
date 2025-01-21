@@ -8,7 +8,7 @@
 > Advancing on-chain intelligence through LLM-powered market analysis
 
 ## 🎯 Mission
-LIQUBIT combines state-of-the-art language models with real-time on-chain analytics to create a sophisticated market intelligence protocol. By leveraging the LLaMA-3.3-70B model through Groq inference, we're pushing the boundaries of what's possible in algorithmic trading.
+LIQUBIT combines state-of-the-art language models with real-time on-chain analytics to create a sophisticated market intelligence protocol. By leveraging the LLaMA-3.3-70B model through Groq inference, we're pushing the boundaries of what's possible in AI crypto market analysis.
 
 ## 🔬 Technical Overview
 
