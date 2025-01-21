@@ -1,180 +1,70 @@
-// src/data/providers/base-provider.ts
 export interface MarketData {
+  symbol: string;
   price: number;
-  volume: number;
+  priceChange24h: number;
+  priceChangePercentage24h: number;
+  volume24h: number;
   marketCap: number;
-  change24h: number;
+  high24h: number;
+  low24h: number;
+  circulatingSupply: number;
+  totalSupply: number;
   lastUpdated: Date;
 }
 
-export interface TokenData extends MarketData {
+export interface OnChainMetrics {
   symbol: string;
-  name: string;
-  chain: string;
+  activeAddresses24h: number;
+  transactionCount24h: number;
+  averageTransactionValue: number;
+  largeTransactions24h: number; // Transactions > $100k
+  netFlow24h: number; // Net exchange flow
+  totalValueLocked?: number; // For DeFi tokens
+  dailyActiveContracts?: number; // For smart contract platforms
+  gasUsed24h?: number; // For platforms like ETH, SOL
+  timestamp: Date;
 }
 
-export abstract class BaseDataProvider {
-  abstract getName(): string;
-  abstract getMarketData(symbol: string): Promise<MarketData>;
-  abstract isSupported(symbol: string): Promise<boolean>;
+export interface TechnicalIndicators {
+  symbol: string;
+  rsi14: number;
+  macd: {
+    value: number;
+    signal: number;
+    histogram: number;
+  };
+  ema: {
+    ema9: number;
+    ema20: number;
+    ema50: number;
+    ema200: number;
+  };
+  bollingerBands: {
+    upper: number;
+    middle: number;
+    lower: number;
+  };
+  volume: {
+    obv: number; // On-balance volume
+    vwap: number; // Volume-weighted average price
+  };
+  timestamp: Date;
 }
 
-// src/data/providers/coingecko.ts
-import { BaseDataProvider, MarketData } from './base-provider';
-
-export class CoinGeckoProvider extends BaseDataProvider {
-  private apiKey: string;
-  private baseUrl: string = 'https://api.coingecko.com/api/v3';
-
-  constructor(apiKey: string) {
-    super();
-    this.apiKey = apiKey;
-  }
-
-  getName(): string {
-    return 'CoinGecko';
-  }
-
-  async getMarketData(symbol: string): Promise<MarketData> {
-    try {
-      const response = await fetch(
-        `${this.baseUrl}/simple/price?ids=${symbol}&vs_currencies=usd&include_market_cap=true&include_24hr_vol=true&include_24hr_change=true`,
-        {
-          headers: {
-            'x-cg-pro-api-key': this.apiKey,
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`CoinGecko API error: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      const tokenData = data[symbol];
-
-      return {
-        price: tokenData.usd,
-        volume: tokenData.usd_24h_vol,
-        marketCap: tokenData.usd_market_cap,
-        change24h: tokenData.usd_24h_change,
-        lastUpdated: new Date(),
-      };
-    } catch (error) {
-      console.error(`Error fetching data from CoinGecko: ${error}`);
-      throw error;
-    }
-  }
-
-  async isSupported(symbol: string): Promise<boolean> {
-    try {
-      const response = await fetch(`${this.baseUrl}/simple/supported_vs_currencies`);
-      const supportedCurrencies = await response.json();
-      return supportedCurrencies.includes(symbol.toLowerCase());
-    } catch {
-      return false;
-    }
-  }
+export interface SocialMetrics {
+  symbol: string;
+  twitterMentions24h: number;
+  sentimentScore24h: number; // -1 to 1
+  telegramActiveUsers: number;
+  redditSubscribers: number;
+  githubCommits24h?: number;
+  developerActivity?: number;
+  timestamp: Date;
 }
 
-// src/data/providers/cookie-fun.ts
-import { BaseDataProvider, MarketData } from './base-provider';
-
-export class CookieFunProvider extends BaseDataProvider {
-  private apiKey: string;
-  private baseUrl: string = 'https://api.cookie.fun';
-
-  constructor(apiKey: string) {
-    super();
-    this.apiKey = apiKey;
-  }
-
-  getName(): string {
-    return 'Cookie.fun';
-  }
-
-  async getMarketData(symbol: string): Promise<MarketData> {
-    try {
-      const response = await fetch(
-        `${this.baseUrl}/v1/tokens/${symbol}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${this.apiKey}`,
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`Cookie.fun API error: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-
-      return {
-        price: data.price,
-        volume: data.volume24h,
-        marketCap: data.marketCap,
-        change24h: data.priceChange24h,
-        lastUpdated: new Date(data.lastUpdated),
-      };
-    } catch (error) {
-      console.error(`Error fetching data from Cookie.fun: ${error}`);
-      throw error;
-    }
-  }
-
-  async isSupported(symbol: string): Promise<boolean> {
-    try {
-      const response = await fetch(
-        `${this.baseUrl}/v1/tokens/${symbol}/exists`,
-        {
-          headers: {
-            'Authorization': `Bearer ${this.apiKey}`,
-          },
-        }
-      );
-      return response.ok;
-    } catch {
-      return false;
-    }
-  }
-}
-
-// src/data/market-service.ts
-import { BaseDataProvider, MarketData } from './providers/base-provider';
-import { CoinGeckoProvider } from './providers/coingecko';
-import { CookieFunProvider } from './providers/cookie-fun';
-
-export class MarketService {
-  private providers: BaseDataProvider[];
-
-  constructor() {
-    this.providers = [
-      new CoinGeckoProvider(process.env.COINGECKO_API_KEY || ''),
-      new CookieFunProvider(process.env.COOKIE_FUN_API_KEY || ''),
-    ];
-  }
-
-  async getMarketData(symbol: string): Promise<MarketData> {
-    let lastError: Error | null = null;
-
-    // Try each provider until we get data
-    for (const provider of this.providers) {
-      try {
-        if (await provider.isSupported(symbol)) {
-          return await provider.getMarketData(symbol);
-        }
-      } catch (error) {
-        console.error(`Error with provider ${provider.getName()}: ${error}`);
-        lastError = error as Error;
-      }
-    }
-
-    throw lastError || new Error(`No provider could fetch data for ${symbol}`);
-  }
-
-  async getSupportedTokens(): Promise<string[]> {
-    // Implementation depends on your needs
-    return ['BTC', 'ETH', 'SOL', 'LIQ']; // Example
-  }
+export interface BaseProvider {
+  getMarketData(symbol: string): Promise<MarketData>;
+  getOnChainMetrics(symbol: string): Promise<OnChainMetrics>;
+  getTechnicalIndicators(symbol: string): Promise<TechnicalIndicators>;
+  getSocialMetrics(symbol: string): Promise<SocialMetrics>;
 }

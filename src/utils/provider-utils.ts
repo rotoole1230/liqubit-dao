@@ -1,0 +1,81 @@
+export interface RetryConfig {
+  maxRetries: number;
+  baseDelay: number;
+  maxDelay: number;
+}
+
+export class ProviderError extends Error {
+  constructor(
+    message: string,
+    public readonly provider: string,
+    public readonly statusCode?: number,
+    public readonly response?: any
+  ) {
+    super(message);
+    this.name = 'ProviderError';
+  }
+}
+
+export async function fetchWithRetry<T>(
+  fetcher: () => Promise<T>,
+  config: RetryConfig = { maxRetries: 3, baseDelay: 1000, maxDelay: 10000 },
+  providerName: string
+): Promise<T> {
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt < config.maxRetries; attempt++) {
+    try {
+      return await fetcher();
+    } catch (error) {
+      lastError = error as Error;
+
+      if (attempt < config.maxRetries - 1) {
+        const delay = Math.min(
+          config.baseDelay * Math.pow(2, attempt),
+          config.maxDelay
+        );
+
+        console.warn(
+          `${providerName} request failed (attempt ${attempt + 1}/${config.maxRetries}). Retrying in ${delay}ms...`
+        );
+
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+
+  throw new ProviderError(
+    `${providerName} request failed after ${config.maxRetries} attempts: ${lastError?.message}`,
+    providerName
+  );
+}
+
+export function validateResponse(data: any, requiredFields: string[], provider: string): void {
+  const missingFields = requiredFields.filter(field => !data[field]);
+
+  if (missingFields.length > 0) {
+    throw new ProviderError(
+      `Missing required fields from ${provider}: ${missingFields.join(', ')}`,
+      provider
+    );
+  }
+}
+
+export class RateLimiter {
+  private lastRequest: number = 0;
+  private requestQueue: Promise<void> = Promise.resolve();
+
+  constructor(private minInterval: number) {}
+
+  async acquire(): Promise<void> {
+    const now = Date.now();
+    const timeToWait = Math.max(0, this.lastRequest + this.minInterval - now);
+
+    this.requestQueue = this.requestQueue.then(
+      () => new Promise(resolve => setTimeout(resolve, timeToWait))
+    );
+
+    await this.requestQueue;
+    this.lastRequest = Date.now();
+  }
+}

@@ -1,180 +1,161 @@
-// src/data/market-data-aggregator.ts
-import { MarketService } from './market-service';
-import _ from 'lodash';
+import { CacheManager } from './cache/cache-manager';
+import { fetchWithRetry, RateLimiter } from './utils/provider-utils';
+import { CoinGeckoProvider } from './providers/coingecko-provider';
+import { CookieFunProvider } from './providers/cookiefun-provider';
+import { 
+  MarketData, 
+  OnChainMetrics, 
+  TechnicalIndicators, 
+  SocialMetrics 
+} from './providers/base-provider';
 
-export interface TokenMetrics {
-  price: number;
-  volume24h: number;
-  marketCap: number;
-  change24h: number;
-  high24h: number;
-  low24h: number;
-  ath: number;
-  athDate: Date;
-  atl: number;
-  atlDate: Date;
-  totalSupply?: number;
-  circulatingSupply?: number;
+export interface AggregatorConfig {
+  cacheTTL: number;
+  maxCacheSize: number;
+  rateLimit: number;
+  providers: {
+    coingecko?: boolean;
+    cookiefun?: boolean;
+    // Add more providers as needed
+  };
 }
 
-export interface SocialMetrics {
-  twitterFollowers: number;
-  twitterVolume24h: number;
-  sentimentScore: number; // -1 to 1
-  messageVolume24h: number;
-  topMentions: Array<{
-    platform: string;
-    count: number;
-  }>;
-}
+export class EnhancedMarketDataAggregator {
+  private providers: Map<string, any> = new Map();
+  private cache: CacheManager<any>;
+  private rateLimiters: Map<string, RateLimiter> = new Map();
 
-export interface OnChainMetrics {
-  activeAddresses24h: number;
-  transactions24h: number;
-  volume24h: number;
-  averageTransactionValue: number;
-  largeTransactions: number; // Number of transactions > $100k
-  tvl?: number;
-  holders?: number;
-}
-
-export interface MarketContext {
-  globalMarketCap: number;
-  btcDominance: number;
-  fear_greed_index: number;
-  top_gainers: Array<{
-    symbol: string;
-    change24h: number;
-  }>;
-  top_losers: Array<{
-    symbol: string;
-    change24h: number;
-  }>;
-}
-
-export interface ComprehensiveAnalysis {
-  token: string;
-  timestamp: number;
-  metrics: TokenMetrics;
-  social: SocialMetrics;
-  onChain: OnChainMetrics;
-  marketContext: MarketContext;
-  correlatedAssets: Array<{
-    symbol: string;
-    correlation: number; // -1 to 1
-  }>;
-}
-
-export class MarketDataAggregator {
-  private marketService: MarketService;
-  private cache: Map<string, {
-    data: ComprehensiveAnalysis;
-    timestamp: number;
-  }>;
-  private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-
-  constructor() {
-    this.marketService = new MarketService();
-    this.cache = new Map();
-  }
-
-  private async fetchSocialMetrics(token: string): Promise<SocialMetrics> {
-    // Implement social metrics fetching from various sources
-    // This is a placeholder implementation
-    return {
-      twitterFollowers: 0,
-      twitterVolume24h: 0,
-      sentimentScore: 0,
-      messageVolume24h: 0,
-      topMentions: []
-    };
-  }
-
-  private async fetchOnChainMetrics(token: string, chain: string): Promise<OnChainMetrics> {
-    // Implement on-chain metrics fetching
-    // This is a placeholder implementation
-    return {
-      activeAddresses24h: 0,
-      transactions24h: 0,
-      volume24h: 0,
-      averageTransactionValue: 0,
-      largeTransactions: 0
-    };
-  }
-
-  private async fetchMarketContext(): Promise<MarketContext> {
-    // Implement market context fetching
-    // This is a placeholder implementation
-    return {
-      globalMarketCap: 0,
-      btcDominance: 0,
-      fear_greed_index: 50,
-      top_gainers: [],
-      top_losers: []
-    };
-  }
-
-  private async calculateCorrelations(token: string): Promise<Array<{symbol: string, correlation: number}>> {
-    // Implement correlation calculation with other assets
-    // This is a placeholder implementation
-    return [];
-  }
-
-  public async getComprehensiveAnalysis(token: string): Promise<ComprehensiveAnalysis> {
-    // Check cache first
-    const cached = this.cache.get(token);
-    if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
-      return cached.data;
-    }
-
-    // Fetch all data concurrently
-    const [
-      marketData,
-      socialMetrics,
-      onChainMetrics,
-      marketContext,
-      correlatedAssets
-    ] = await Promise.all([
-      this.marketService.getMarketData(token),
-      this.fetchSocialMetrics(token),
-      this.fetchOnChainMetrics(token, 'default'), // Add chain detection logic
-      this.fetchMarketContext(),
-      this.calculateCorrelations(token)
-    ]);
-
-    const analysis: ComprehensiveAnalysis = {
-      token,
-      timestamp: Date.now(),
-      metrics: marketData as TokenMetrics,
-      social: socialMetrics,
-      onChain: onChainMetrics,
-      marketContext,
-      correlatedAssets
-    };
-
-    // Update cache
-    this.cache.set(token, {
-      data: analysis,
-      timestamp: Date.now()
+  constructor(private config: AggregatorConfig) {
+    // Initialize cache
+    this.cache = new CacheManager({
+      ttl: config.cacheTTL,
+      maxSize: config.maxCacheSize
     });
 
-    return analysis;
+    // Initialize providers
+    if (config.providers.coingecko) {
+      this.providers.set('coingecko', new CoinGeckoProvider());
+      this.rateLimiters.set('coingecko', new RateLimiter(config.rateLimit));
+    }
+
+    if (config.providers.cookiefun) {
+      this.providers.set('cookiefun', new CookieFunProvider());
+      this.rateLimiters.set('cookiefun', new RateLimiter(config.rateLimit));
+    }
   }
 
-  public async getMarketTrends(): Promise<{
-    trending: string[];
-    volume: string[];
-    sentiment: string[];
-  }> {
-    // Implement market trends analysis
+  private async fetchFromProvider<T>(
+    provider: string,
+    method: string,
+    symbol: string
+  ): Promise<T | null> {
+    const rateLimiter = this.rateLimiters.get(provider);
+    if (rateLimiter) await rateLimiter.acquire();
+
+    const providerInstance = this.providers.get(provider);
+    if (!providerInstance) return null;
+
+    try {
+      return await fetchWithRetry(
+        () => providerInstance[method](symbol),
+        { maxRetries: 3, baseDelay: 1000, maxDelay: 10000 },
+        provider
+      );
+    } catch (error) {
+      console.error(`Error fetching from ${provider}:`, error);
+      return null;
+    }
+  }
+
+  private async aggregateData<T>(
+    symbol: string,
+    method: string,
+    mergeStrategy: (results: (T | null)[]) => T
+  ): Promise<T> {
+    const cacheKey = `${symbol}-${method}`;
+    const cachedData = this.cache.get(cacheKey);
+    if (cachedData) return cachedData;
+
+    const providerPromises = Array.from(this.providers.keys()).map(provider =>
+      this.fetchFromProvider<T>(provider, method, symbol)
+    );
+
+    const results = await Promise.all(providerPromises);
+    const mergedData = mergeStrategy(results);
+
+    this.cache.set(cacheKey, mergedData);
+    return mergedData;
+  }
+
+  async getComprehensiveAnalysis(symbol: string) {
+    const [market, onChain, technical, social] = await Promise.all([
+      this.getMarketData(symbol),
+      this.getOnChainMetrics(symbol),
+      this.getTechnicalIndicators(symbol),
+      this.getSocialMetrics(symbol)
+    ]);
+
     return {
-      trending: [],
-      volume: [],
-      sentiment: []
+      symbol: symbol.toUpperCase(),
+      market,
+      onChain,
+      technical,
+      social,
+      timestamp: new Date(),
+      providers: Array.from(this.providers.keys())
     };
   }
 
-  public clearCache(): void {
-    this.cache.clear();
+  async getMarketData(symbol: string): Promise<MarketData> {
+    return this.aggregateData<MarketData>(
+      symbol,
+      'getMarketData',
+      this.mergeMarketData.bind(this)
+    );
   }
-}
+
+  async getOnChainMetrics(symbol: string): Promise<OnChainMetrics> {
+    return this.aggregateData<OnChainMetrics>(
+      symbol,
+      'getOnChainMetrics',
+      this.mergeOnChainMetrics.bind(this)
+    );
+  }
+
+  async getTechnicalIndicators(symbol: string): Promise<TechnicalIndicators> {
+    return this.aggregateData<TechnicalIndicators>(
+      symbol,
+      'getTechnicalIndicators',
+      this.mergeTechnicalIndicators.bind(this)
+    );
+  }
+
+  async getSocialMetrics(symbol: string): Promise<SocialMetrics> {
+    return this.aggregateData<SocialMetrics>(
+      symbol,
+      'getSocialMetrics',
+      this.mergeSocialMetrics.bind(this)
+    );
+  }
+
+  // Merge strategies for different data types
+  private mergeMarketData(results: (MarketData | null)[]): MarketData {
+    // Implement weighted average based on provider reliability
+    // ... implementation details
+  }
+
+  private mergeOnChainMetrics(results: (OnChainMetrics | null)[]): OnChainMetrics {
+    // Merge on-chain metrics with priority to specialized providers
+    // ... implementation details
+  }
+
+  private mergeTechnicalIndicators(results: (TechnicalIndicators | null)[]): TechnicalIndicators {
+    // Merge technical indicators with validation
+    // ... implementation details
+  }
+
+  private mergeSocialMetrics(results: (SocialMetrics | null)[]): SocialMetrics {
+    // Merge social metrics with cross-validation
+    // ... implementation details
+  }
+}`
