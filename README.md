@@ -1,4 +1,4 @@
-# 🧠 LIQUBIT ($LIQ)
+# 🧠 LIQUBIT (NO TOKEN YET)
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Inference](https://img.shields.io/badge/inference-groq-green.svg)
