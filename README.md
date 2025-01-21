@@ -6,7 +6,6 @@
 ![Chain](https://img.shields.io/badge/networks-solana%20|%20base-purple.svg)
 
 > Advancing on-chain intelligence through LLM-powered market analysis
->
 
 ## STATUS
 1) MVP for terminal product is developed with in context crypto data context -> LLM processing layer
@@ -14,6 +13,7 @@
 3) No token yet. Much work to be done enhancing data layer. The MVP is capable of processing LLM chat completions with llama-3.3-70b-versatile
 4) Socials presence in process
 5) No compute or paid API investments. Bootstrapped. Currently not deployed.
+6) Contact: liqubitdao@gmail.com    
 
 ## 🎯 Mission
 LIQUBIT combines state-of-the-art language models with real-time on-chain analytics to create a sophisticated market intelligence protocol. By leveraging the LLaMA-3.3-70B model through Groq inference, we're pushing the boundaries of what's possible in AI crypto market analysis.
