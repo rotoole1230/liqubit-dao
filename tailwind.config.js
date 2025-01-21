@@ -1,23 +1,64 @@
-// tailwind.config.js
+const { fontFamily } = require("tailwindcss/defaultTheme")
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  darkMode: ["class"],
   content: [
-    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/**/*.{js,ts,jsx,tsx}",
+    "./src/components/**/*.{js,ts,jsx,tsx}",
+    "./src/pages/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
-    extend: {
-      fontFamily: {
-        terminal: ['Share Tech Mono', 'monospace'],
-        cyber: ['Cyber', 'monospace'],
+    container: {
+      center: true,
+      padding: "2rem",
+      screens: {
+        "2xl": "1400px",
       },
-      animation: {
-        'terminal-glow': 'glow 2s ease-in-out infinite',
+    },
+    extend: {
+      colors: {
+        terminal: {
+          green: {
+            DEFAULT: '#00ff9d',
+            50: '#00ff9d10',
+            100: '#00ff9d20',
+            200: '#00ff9d30',
+            300: '#00ff9d40',
+            400: '#00ff9d50',
+            500: '#00ff9d60',
+            600: '#00ff9d70',
+            700: '#00ff9d80',
+            800: '#00ff9d90',
+            900: '#00ff9d',
+          },
+          black: '#0a0f16',
+        }
+      },
+      fontFamily: {
+        sans: ["var(--font-sans)", ...fontFamily.sans],
+        mono: [
+          "JetBrains Mono",
+          "Fira Code",
+          "Roboto Mono",
+          "Monaco",
+          "Consolas",
+          "monospace"
+        ],
+        terminal: [
+          "JetBrains Mono",
+          "Fira Code",
+          "SF Mono",
+          "Monaco",
+          "Consolas",
+          "monospace"
+        ]
       },
     },
   },
   plugins: [
-    require('tailwind-scrollbar')({ nocompatible: true }),
+    require("tailwindcss-animate"),
+    require('@tailwindcss/typography'),
+    require('@tailwindcss/forms'),
   ],
-};
+}

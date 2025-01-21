@@ -1,7 +1,11 @@
-
 import React, { useState, useRef, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { CommandLineIcon } from '@heroicons/react/24/outline';
+import { 
+  Terminal as TerminalIcon,
+  ArrowDownUp,
+  BarChart3,
+  Cpu,
+  Clock
+} from 'lucide-react';
 import { EnhancedLLM } from '../ai/enhanced-conversation';
 
 interface Message {
@@ -10,33 +14,65 @@ interface Message {
   timestamp: Date;
 }
 
-const Terminal: React.FC = () => {
+const Terminal = () => {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const llm = useRef(new EnhancedLLM());
+  const [currentTime, setCurrentTime] = useState<string>('');
+  const [isInitialized, setIsInitialized] = useState(false);
+  const messagesEndRef = useRef(null);
+  const llmRef = useRef<EnhancedLLM | null>(null);
 
-  // Add typewriter effect for welcome message
+  const [metrics] = useState({
+    latency: '150ms',
+    accuracy: '87%',
+    processing: '100k/s'
+  });
+
+  // Initialize LLM
   useEffect(() => {
-    setMessages([{
-      role: 'system',
-      content: '> LIQUBIT TERMINAL v2.0 [INITIALIZED]\n> Ready for market analysis...',
-      timestamp: new Date()
-    }]);
+    try {
+      llmRef.current = new EnhancedLLM();
+      console.log('LLM initialized successfully');
+    } catch (error) {
+      console.error('Failed to initialize LLM:', error);
+      setMessages(prev => [...prev, {
+        role: 'system',
+        content: 'Error: AI system initialization failed. Please check configuration.',
+        timestamp: new Date()
+      }]);
+    }
   }, []);
+
+  // Handle time updates
+  useEffect(() => {
+    const updateTime = () => {
+      setCurrentTime(new Date().toLocaleTimeString());
+    };
+
+    updateTime();
+    const timer = setInterval(updateTime, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  // Initialize system message only once
+  useEffect(() => {
+    if (currentTime && !isInitialized) {
+      setMessages([
+        {
+          role: 'system',
+          content: `SYSTEM●${currentTime}\nLIQUBIT TERMINAL v2.0 [INITIALIZED]\nProcessing Layer: LLaMA-3.3-70B\nInference: Groq\nNetworks: Solana | Base\nStatus: Ready for market analysis...`,
+          timestamp: new Date()
+        }
+      ]);
+      setIsInitialized(true);
+    }
+  }, [currentTime, isInitialized]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
-
-  useEffect(() => {
-    setMessages([{
-      role: 'system',
-      content: 'Welcome to LIQUBIT Terminal! Ask me anything about crypto markets.',
-      timestamp: new Date()
-    }]);
-  }, []);
 
   useEffect(() => {
     scrollToBottom();
@@ -44,29 +80,35 @@ const Terminal: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isLoading) return;
+    if (!input.trim() || isLoading || !llmRef.current) return;
 
     const userMessage = {
-      role: 'user' as const,
+      role: 'user',
       content: input.trim(),
       timestamp: new Date()
     };
 
+    // Add user message to chat
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
 
     try {
-      const response = await llm.current.chat(userMessage.content);
+      const response = await llmRef.current.chat(input.trim());
+      console.log('Got response:', response); // Debug log
+
+      // Add assistant's response to chat
       setMessages(prev => [...prev, {
         role: 'assistant',
         content: response,
         timestamp: new Date()
       }]);
     } catch (error) {
+      console.error('Error processing query:', error);
+
       setMessages(prev => [...prev, {
         role: 'system',
-        content: 'Sorry, there was an error processing your request.',
+        content: 'Error processing request. Please check console for details.',
         timestamp: new Date()
       }]);
     } finally {
@@ -74,65 +116,83 @@ const Terminal: React.FC = () => {
     }
   };
 
+  if (!currentTime) return null;
+
   return (
-    <div className="flex flex-col h-[100dvh] bg-[#0a0f16] text-[#00ff9d] font-terminal relative overflow-hidden">
-      <div className="fixed top-0 left-0 w-full h-24 bg-gradient-to-b from-[#00ff9d]/5 to-transparent pointer-events-none z-10" />
-      <div className="fixed bottom-0 left-0 w-full h-24 bg-gradient-to-t from-[#00ff9d]/5 to-transparent pointer-events-none z-10" />
-      <div className="flex-1 overflow-y-auto px-3 py-4 md:p-4 space-y-3 relative scrollbar-thin scrollbar-thumb-[#00ff9d]/30 scrollbar-track-transparent">
-        <div className="fixed top-2 right-2 text-[#00ff9d]/40 text-[10px] font-terminal tracking-wider">
-          <div className="flex items-center gap-1">
-            <CommandLineIcon className="w-3 h-3" />
-            SYSTEM:ACTIVE
+    <div className="flex flex-col h-screen bg-black text-terminal-green font-mono">
+      {/* Status Bar */}
+      <div className="flex items-center justify-between px-4 py-2 bg-black border-b border-terminal-green/20 text-xs">
+        <div className="flex items-center gap-2">
+          <Clock className="w-3 h-3" />
+          {currentTime}
+        </div>
+        <div className="flex gap-4">
+          <div className="flex items-center gap-2">
+            <Cpu className="w-3 h-3" />
+            {metrics.latency}
+          </div>
+          <div className="flex items-center gap-2">
+            <BarChart3 className="w-3 h-3" />
+            {metrics.accuracy}
+          </div>
+          <div className="flex items-center gap-2">
+            <ArrowDownUp className="w-3 h-3" />
+            {metrics.processing}
           </div>
         </div>
+      </div>
+
+      {/* Terminal Output */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {messages.map((msg, idx) => (
-          <motion.div
+          <div
             key={idx}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className={`p-3 rounded border-l-2 ${
-              msg.role === 'user' 
-                ? 'bg-[#00ff9d]/5 border-[#00ff9d] ml-auto text-[#00ff9d]' 
-                : msg.role === 'system' 
-                  ? 'bg-[#1a1f2c] border-[#00ff9d]/50 font-terminal tracking-wider text-[#00ff9d]/80' 
-                  : 'bg-[#131922] border-[#00ff9d]/70 text-[#00ff9d]/90'
-            } max-w-[85%] backdrop-blur-sm shadow-lg font-mono text-sm`}
+            className={`
+              rounded px-3 py-2 
+              ${msg.role === 'system' 
+                ? 'font-bold' 
+                : msg.role === 'user'
+                ? 'bg-terminal-green/5 border-l-2 border-terminal-green ml-8'
+                : 'bg-black/30 border-l-2 border-terminal-green/50 mr-8'}
+            `}
           >
-            <p className="text-sm text-gray-300 mb-1">
-              {msg.role.charAt(0).toUpperCase() + msg.role.slice(1)}
-            </p>
-            <p className="whitespace-pre-wrap">{msg.content}</p>
-          </motion.div>
+            <div className="flex items-center gap-2 mb-1 text-xs opacity-70">
+              <span>{msg.role.toUpperCase()}</span>
+              <span>●</span>
+              <span>{msg.timestamp.toLocaleTimeString()}</span>
+            </div>
+            <div className="whitespace-pre-wrap">{msg.content}</div>
+          </div>
         ))}
         {isLoading && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex items-center space-x-2 text-gray-400"
-          >
-            <div className="animate-pulse">Thinking...</div>
-          </motion.div>
+          <div className="flex items-center gap-2 text-terminal-green/50">
+            <div className="animate-spin">
+              <ArrowDownUp className="w-4 h-4" />
+            </div>
+            <span>Processing market data...</span>
+          </div>
         )}
         <div ref={messagesEndRef} />
       </div>
 
-      <form onSubmit={handleSubmit} className="sticky bottom-0 p-3 md:p-4 bg-gray-900/80 border-t border-cyan-500/30 backdrop-blur-md">
-        <div className="flex items-center gap-2 max-w-4xl mx-auto">
-          <CommandLineIcon className="w-5 h-5 text-cyan-500" />
+      {/* Input Area */}
+      <form onSubmit={handleSubmit} className="p-4 border-t border-terminal-green/20">
+        <div className="flex items-center gap-2">
+          <span className="text-terminal-green">{'>'}</span>
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            className="flex-1 bg-gray-800/50 text-cyan-100 px-4 py-2 rounded-lg border border-cyan-500/30 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 placeholder-cyan-300/30"
-            placeholder="Ask about crypto markets..."
+            className="flex-1 bg-black text-terminal-green border border-terminal-green/20 rounded px-4 py-2 focus:outline-none focus:border-terminal-green focus:ring-1 focus:ring-terminal-green"
+            placeholder="Enter market analysis query..."
             disabled={isLoading}
           />
-          <button
-            type="submit"
+          <button 
+            type="submit" 
             disabled={isLoading}
-            className="px-4 py-2 bg-cyan-900/50 text-cyan-100 rounded-lg border border-cyan-500/30 hover:bg-cyan-800/50 hover:border-cyan-400 transition-all disabled:opacity-50 font-mono"
+            className="px-6 py-2 bg-terminal-green/10 text-terminal-green border border-terminal-green/20 rounded hover:bg-terminal-green/20 transition-all disabled:opacity-50 uppercase tracking-wider text-sm"
           >
-            EXECUTE
+            Execute
           </button>
         </div>
       </form>
