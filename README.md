@@ -93,19 +93,18 @@ class MarketAnalysis:
 ## 🔄 Current Focus Areas
 
 1. **LLM Optimization**
-   - Prompt engineering for market analysis
-   - Context window optimization
-   - Response latency reduction
+   -Enhancing the data layer 
 
-2. **Data Integration**
+3. **Data Integration**
    - Real-time data pipeline optimization
-   - Cross-chain data correlation
    - Social sentiment analysis improvements
 
-3. **Analysis Capabilities**
+4. **Analysis Capabilities**
    - Advanced pattern recognition
    - Risk assessment models
    - Predictive analytics
+   - Whale watching
+   - Capital flows assessment
 
 ## 🤝 Contributing
 
@@ -117,9 +116,8 @@ We're actively seeking contributors with expertise in:
   - Inference optimization
 
 - **Market Analysis**
-  - Technical analysis
   - On-chain analytics
-  - Sentiment analysis
+  - Sentiment / mindshare analysis
 
 - **Development**
   - Solana/Base development
@@ -138,36 +136,22 @@ pip install -r requirements.txt
 npm install
 ```
 
-2. **Running Tests**
-```bash
-pytest tests/
-npm test
-```
-
-3. **Local Development**
+2. **Local Development**
 ```bash
 # Start development environment
 npm run dev
 
-# Run AI pipeline locally
-python scripts/run_pipeline.py
 ```
 
-
-## 🔗 Resources
-
-- [Technical Documentation](https://docs.liqubit.xyz)
-- [API Reference](https://docs.liqubit.xyz/api)
-- [Architecture Overview](https://docs.liqubit.xyz/architecture)
-- [Contributing Guide](https://docs.liqubit.xyz/contributing)
 
 
 ## 📈 Roadmap Q1 2024
 
 - [ ] LLaMA model fine-tuning for market analysis
-- [ ] Advanced on-chain analytics integration
-- [ ] Cross-chain correlation engine
-- [ ] Automated trading module beta
+- [ ] Cookie.fun integration
+- [ ] Dexscreener integration
+- [ ] X Agent Deployment
+- [ ] Token launch
 
 ## 🤖 Join the Development
 
@@ -178,9 +162,7 @@ We're building the future of on-chain intelligence. If you're passionate about:
 - Market Analysis
 - High-Performance Computing
 
-We want to work with you. Reach out:
-- [Discord](https://discord.gg/liqubit-dev)
-- [GitHub Issues](https://github.com/liqubit/liqubit-core/issues)
+Contact: Liqubit@gmail.com
 
 ## 📜 License
 
