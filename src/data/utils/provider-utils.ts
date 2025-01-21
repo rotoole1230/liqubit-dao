@@ -79,3 +79,56 @@ export class RateLimiter {
     this.lastRequest = Date.now();
   }
 }
+
+// Helper function to format currency values
+export function formatCurrency(value: number, decimals: number = 2): string {
+  if (value >= 1e9) {
+    return `$${(value / 1e9).toFixed(decimals)}B`;
+  } else if (value >= 1e6) {
+    return `$${(value / 1e6).toFixed(decimals)}M`;
+  } else if (value >= 1e3) {
+    return `$${(value / 1e3).toFixed(decimals)}K`;
+  }
+  return `$${value.toFixed(decimals)}`;
+}
+
+// Helper function to format percentage values
+export function formatPercentage(value: number, decimals: number = 2): string {
+  const sign = value >= 0 ? '+' : '';
+  return `${sign}${value.toFixed(decimals)}%`;
+}
+
+// Helper function to validate API key
+export function validateApiKey(apiKey: string | undefined, provider: string): void {
+  if (!apiKey) {
+    throw new ProviderError(
+      `Missing API key for ${provider}. Please check your environment variables.`,
+      provider
+    );
+  }
+}
+
+// Helper function to handle API response
+export async function handleApiResponse<T>(
+  response: Response,
+  provider: string
+): Promise<T> {
+  if (!response.ok) {
+    const errorBody = await response.text().catch(() => 'No error body');
+    throw new ProviderError(
+      `API request failed: ${response.status} ${response.statusText}\n${errorBody}`,
+      provider,
+      response.status,
+      errorBody
+    );
+  }
+
+  try {
+    return await response.json();
+  } catch (error) {
+    throw new ProviderError(
+      `Failed to parse JSON response: ${(error as Error).message}`,
+      provider
+    );
+  }
+}

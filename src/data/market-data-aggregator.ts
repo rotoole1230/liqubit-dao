@@ -1,161 +1,203 @@
-import { CacheManager } from './cache/cache-manager';
-import { fetchWithRetry, RateLimiter } from './utils/provider-utils';
 import { CoinGeckoProvider } from './providers/coingecko-provider';
-import { CookieFunProvider } from './providers/cookiefun-provider';
-import { 
-  MarketData, 
-  OnChainMetrics, 
-  TechnicalIndicators, 
-  SocialMetrics 
+import {
+  MarketData,
+  OnChainMetrics,
+  TechnicalIndicators,
+  SocialMetrics
 } from './providers/base-provider';
+import { formatCurrency, formatPercentage } from './providers/utils';
 
-export interface AggregatorConfig {
-  cacheTTL: number;
-  maxCacheSize: number;
-  rateLimit: number;
-  providers: {
-    coingecko?: boolean;
-    cookiefun?: boolean;
-    // Add more providers as needed
-  };
+export interface ComprehensiveAnalysis {
+  symbol: string;
+  market: MarketData;
+  onChain: OnChainMetrics;
+  technical: TechnicalIndicators;
+  social: SocialMetrics;
+  timestamp: Date;
+  status: 'success' | 'partial' | 'error';
+  errors?: string[];
 }
 
-export class EnhancedMarketDataAggregator {
-  private providers: Map<string, any> = new Map();
-  private cache: CacheManager<any>;
-  private rateLimiters: Map<string, RateLimiter> = new Map();
+export class MarketDataAggregator {
+  private providers: {
+    coingecko: CoinGeckoProvider;
+  };
+  private readonly retryAttempts = 3;
+  private readonly retryDelay = 1000;
 
-  constructor(private config: AggregatorConfig) {
-    // Initialize cache
-    this.cache = new CacheManager({
-      ttl: config.cacheTTL,
-      maxSize: config.maxCacheSize
-    });
-
-    // Initialize providers
-    if (config.providers.coingecko) {
-      this.providers.set('coingecko', new CoinGeckoProvider());
-      this.rateLimiters.set('coingecko', new RateLimiter(config.rateLimit));
-    }
-
-    if (config.providers.cookiefun) {
-      this.providers.set('cookiefun', new CookieFunProvider());
-      this.rateLimiters.set('cookiefun', new RateLimiter(config.rateLimit));
-    }
-  }
-
-  private async fetchFromProvider<T>(
-    provider: string,
-    method: string,
-    symbol: string
-  ): Promise<T | null> {
-    const rateLimiter = this.rateLimiters.get(provider);
-    if (rateLimiter) await rateLimiter.acquire();
-
-    const providerInstance = this.providers.get(provider);
-    if (!providerInstance) return null;
-
-    try {
-      return await fetchWithRetry(
-        () => providerInstance[method](symbol),
-        { maxRetries: 3, baseDelay: 1000, maxDelay: 10000 },
-        provider
-      );
-    } catch (error) {
-      console.error(`Error fetching from ${provider}:`, error);
-      return null;
-    }
-  }
-
-  private async aggregateData<T>(
-    symbol: string,
-    method: string,
-    mergeStrategy: (results: (T | null)[]) => T
-  ): Promise<T> {
-    const cacheKey = `${symbol}-${method}`;
-    const cachedData = this.cache.get(cacheKey);
-    if (cachedData) return cachedData;
-
-    const providerPromises = Array.from(this.providers.keys()).map(provider =>
-      this.fetchFromProvider<T>(provider, method, symbol)
-    );
-
-    const results = await Promise.all(providerPromises);
-    const mergedData = mergeStrategy(results);
-
-    this.cache.set(cacheKey, mergedData);
-    return mergedData;
-  }
-
-  async getComprehensiveAnalysis(symbol: string) {
-    const [market, onChain, technical, social] = await Promise.all([
-      this.getMarketData(symbol),
-      this.getOnChainMetrics(symbol),
-      this.getTechnicalIndicators(symbol),
-      this.getSocialMetrics(symbol)
-    ]);
-
-    return {
-      symbol: symbol.toUpperCase(),
-      market,
-      onChain,
-      technical,
-      social,
-      timestamp: new Date(),
-      providers: Array.from(this.providers.keys())
+  constructor() {
+    this.providers = {
+      coingecko: new CoinGeckoProvider()
     };
   }
 
-  async getMarketData(symbol: string): Promise<MarketData> {
-    return this.aggregateData<MarketData>(
-      symbol,
-      'getMarketData',
-      this.mergeMarketData.bind(this)
-    );
+  async fetchTokenData(symbol: string): Promise<ComprehensiveAnalysis> {
+    const errors: string[] = [];
+    const timestamp = new Date();
+    let status: 'success' | 'partial' | 'error' = 'success';
+
+    // Initialize with default values
+    let analysis: ComprehensiveAnalysis = this.createDefaultAnalysis(symbol);
+
+    try {
+      // Fetch data with retries and parallel execution
+      const [marketResult, technicalResult, socialResult] = await Promise.allSettled([
+        this.fetchWithRetry(() => this.providers.coingecko.getMarketData(symbol)),
+        this.fetchWithRetry(() => this.providers.coingecko.getTechnicalIndicators(symbol)),
+        this.fetchWithRetry(() => this.providers.coingecko.getSocialMetrics(symbol))
+      ]);
+
+      // Process market data
+      if (marketResult.status === 'fulfilled') {
+        analysis.market = marketResult.value;
+      } else {
+        errors.push(`Market data error: ${marketResult.reason}`);
+        status = 'partial';
+      }
+
+      // Process technical indicators
+      if (technicalResult.status === 'fulfilled') {
+        analysis.technical = technicalResult.value;
+      } else {
+        errors.push(`Technical data error: ${technicalResult.reason}`);
+        status = 'partial';
+      }
+
+      // Process social metrics
+      if (socialResult.status === 'fulfilled') {
+        analysis.social = socialResult.value;
+      } else {
+        errors.push(`Social data error: ${socialResult.reason}`);
+        status = 'partial';
+      }
+
+      // On-chain metrics are currently placeholders
+      analysis.onChain = this.providers.coingecko.getOnChainMetrics(symbol);
+
+      // Update status and metadata
+      analysis.timestamp = timestamp;
+      analysis.status = errors.length === 0 ? 'success' : 'partial';
+      if (errors.length > 0) {
+        analysis.errors = errors;
+      }
+
+      return analysis;
+
+    } catch (error) {
+      console.error(`Critical error fetching data for ${symbol}:`, error);
+      return {
+        ...this.createDefaultAnalysis(symbol),
+        status: 'error',
+        errors: [`Failed to fetch data: ${error instanceof Error ? error.message : 'Unknown error'}`],
+        timestamp
+      };
+    }
   }
 
-  async getOnChainMetrics(symbol: string): Promise<OnChainMetrics> {
-    return this.aggregateData<OnChainMetrics>(
-      symbol,
-      'getOnChainMetrics',
-      this.mergeOnChainMetrics.bind(this)
-    );
+  private async fetchWithRetry<T>(
+    operation: () => Promise<T>,
+    attempts: number = this.retryAttempts
+  ): Promise<T> {
+    let lastError: Error | null = null;
+
+    for (let i = 0; i < attempts; i++) {
+      try {
+        return await operation();
+      } catch (error) {
+        lastError = error as Error;
+        if (i < attempts - 1) {
+          await new Promise(resolve => setTimeout(resolve, this.retryDelay * Math.pow(2, i)));
+        }
+      }
+    }
+
+    throw lastError;
   }
 
-  async getTechnicalIndicators(symbol: string): Promise<TechnicalIndicators> {
-    return this.aggregateData<TechnicalIndicators>(
-      symbol,
-      'getTechnicalIndicators',
-      this.mergeTechnicalIndicators.bind(this)
-    );
+  private createDefaultAnalysis(symbol: string): ComprehensiveAnalysis {
+    const timestamp = new Date();
+    return {
+      symbol: symbol.toUpperCase(),
+      market: {
+        symbol: symbol.toUpperCase(),
+        price: 0,
+        priceChange24h: 0,
+        priceChangePercentage24h: 0,
+        volume24h: 0,
+        marketCap: 0,
+        high24h: 0,
+        low24h: 0,
+        circulatingSupply: 0,
+        totalSupply: 0,
+        lastUpdated: timestamp
+      },
+      onChain: {
+        symbol: symbol.toUpperCase(),
+        activeAddresses24h: 0,
+        transactionCount24h: 0,
+        averageTransactionValue: 0,
+        largeTransactions24h: 0,
+        netFlow24h: 0,
+        totalValueLocked: 0,
+        dailyActiveContracts: 0,
+        gasUsed24h: 0,
+        timestamp: timestamp
+      },
+      technical: {
+        symbol: symbol.toUpperCase(),
+        rsi14: 0,
+        macd: { value: 0, signal: 0, histogram: 0 },
+        ema: { ema9: 0, ema20: 0, ema50: 0, ema200: 0 },
+        bollingerBands: { upper: 0, middle: 0, lower: 0 },
+        volume: { obv: 0, vwap: 0 },
+        timestamp: timestamp
+      },
+      social: {
+        symbol: symbol.toUpperCase(),
+        twitterMentions24h: 0,
+        sentimentScore24h: 0,
+        telegramActiveUsers: 0,
+        redditSubscribers: 0,
+        githubCommits24h: 0,
+        developerActivity: 0,
+        timestamp: timestamp
+      },
+      timestamp: timestamp,
+      status: 'success'
+    };
   }
 
-  async getSocialMetrics(symbol: string): Promise<SocialMetrics> {
-    return this.aggregateData<SocialMetrics>(
-      symbol,
-      'getSocialMetrics',
-      this.mergeSocialMetrics.bind(this)
-    );
-  }
+  formatMarketContext(data: ComprehensiveAnalysis): string {
+    const status = data.status === 'success' ? '✅' :
+                  data.status === 'partial' ? '⚠️' : '❌';
 
-  // Merge strategies for different data types
-  private mergeMarketData(results: (MarketData | null)[]): MarketData {
-    // Implement weighted average based on provider reliability
-    // ... implementation details
-  }
+    const marketData = `
+Market Analysis for ${data.symbol} ${status}
 
-  private mergeOnChainMetrics(results: (OnChainMetrics | null)[]): OnChainMetrics {
-    // Merge on-chain metrics with priority to specialized providers
-    // ... implementation details
-  }
+Price Information:
+- Current Price: ${formatCurrency(data.market.price)}
+- 24h Change: ${formatPercentage(data.market.priceChangePercentage24h)}
+- 24h Volume: ${formatCurrency(data.market.volume24h, 0)}
+- Market Cap: ${formatCurrency(data.market.marketCap, 0)}
+${data.market.high24h ? `- 24h High: ${formatCurrency(data.market.high24h)}` : ''}
+${data.market.low24h ? `- 24h Low: ${formatCurrency(data.market.low24h)}` : ''}`;
 
-  private mergeTechnicalIndicators(results: (TechnicalIndicators | null)[]): TechnicalIndicators {
-    // Merge technical indicators with validation
-    // ... implementation details
-  }
+    const technicalData = `
+Technical Indicators:
+- RSI (14): ${data.technical.rsi14.toFixed(2)}
+- MACD: ${data.technical.macd.value.toFixed(4)}
+- EMA Status: ${data.technical.ema.ema50 > data.technical.ema.ema200 ? 'Bullish' : 'Bearish'}`;
 
-  private mergeSocialMetrics(results: (SocialMetrics | null)[]): SocialMetrics {
-    // Merge social metrics with cross-validation
-    // ... implementation details
+    const socialData = `
+Social Metrics:
+- Twitter Followers: ${data.social.twitterMentions24h.toLocaleString()}
+- Reddit Subscribers: ${data.social.redditSubscribers.toLocaleString()}
+- Developer Activity: ${data.social.developerActivity || 'N/A'}`;
+
+    const metadata = `
+Last Updated: ${data.timestamp.toLocaleString()}
+${data.errors ? '\nWarnings:\n' + data.errors.map(error => `- ${error}`).join('\n') : ''}`;
+
+    return `${marketData}${technicalData}${socialData}${metadata}`;
   }
-}`
+}

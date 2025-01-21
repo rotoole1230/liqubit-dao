@@ -1,4 +1,5 @@
 import { MarketDataAggregator, ComprehensiveAnalysis } from '../data/market-data-aggregator';
+import { TOKEN_MAPPINGS } from '../data/providers/token-mapper';
 import _ from 'lodash';
 
 interface ChatMessage {
@@ -36,6 +37,14 @@ export class EnhancedLLM {
   };
 
   constructor() {
+    // Validate required API keys
+    if (!process.env.NEXT_PUBLIC_GROQ_API_KEY) {
+      throw new Error('GROQ_API_KEY not configured');
+    }
+    if (!process.env.NEXT_PUBLIC_COINGECKO_API_KEY) {
+      throw new Error('COINGECKO_API_KEY not configured');
+    }
+
     this.dataAggregator = new MarketDataAggregator();
     this.config = {
       temperature: 0.7,
@@ -52,43 +61,68 @@ export class EnhancedLLM {
         favoriteTokens: []
       }
     };
-
-    if (!process.env.NEXT_PUBLIC_GROQ_API_KEY) {
-      throw new Error('GROQ_API_KEY not configured');
-    }
   }
 
-  private async extractTokensFromQuery(query: string): Promise<string[]> {
-    const commonTokens = ['BTC', 'ETH', 'SOL', 'USDT', 'BNB', 'XRP', 'ADA', 'DOGE'];
+  private extractTokensFromQuery(query: string): string[] {
     const tokens = new Set<string>();
+    const upperQuery = query.toUpperCase();
 
-    // Check for common tokens
-    commonTokens.forEach(token => {
-      if (query.toUpperCase().includes(token)) {
-        tokens.add(token);
+    // Check for direct token mentions
+    for (const [symbol, id] of Object.entries(TOKEN_MAPPINGS)) {
+      if (upperQuery.includes(symbol) || upperQuery.includes(id.toUpperCase())) {
+        tokens.add(id);
       }
-    });
+    }
 
-    // Basic regex for crypto symbols
+    // Handle general market queries
+    if (tokens.size === 0 && 
+        (query.toLowerCase().includes('market') || 
+         query.toLowerCase().includes('price') ||
+         query.toLowerCase().includes('analysis'))) {
+      tokens.add('bitcoin'); // Default to bitcoin for general market queries
+    }
+
+    // Extract potential new symbols using regex
     const symbolRegex = /\b[A-Z]{2,5}\b/g;
     const matches = query.match(symbolRegex) || [];
-    matches.forEach(token => tokens.add(token));
 
+    for (const match of matches) {
+      // Check if it's a known token
+      const mappedToken = TOKEN_MAPPINGS[match] || match.toLowerCase();
+      if (!Array.from(tokens).includes(mappedToken)) {
+        tokens.add(mappedToken);
+      }
+    }
+
+    console.log('Extracted tokens:', Array.from(tokens));
     return Array.from(tokens);
   }
 
   private async fetchMarketContext(tokens: string[]): Promise<Record<string, ComprehensiveAnalysis>> {
     const context: Record<string, ComprehensiveAnalysis> = {};
+    const errors: string[] = [];
 
-    await Promise.all(
-      tokens.map(async (token) => {
-        try {
-          context[token] = await this.dataAggregator.fetchTokenData(token);
-        } catch (error) {
-          console.error(`Error fetching data for ${token}:`, error);
+    console.log('Fetching market data for tokens:', tokens);
+
+    await Promise.all(tokens.map(async (token) => {
+      try {
+        const analysis = await this.dataAggregator.fetchTokenData(token);
+        context[token] = analysis;
+
+        if (analysis.status !== 'success') {
+          errors.push(`Warning for ${token}: ${analysis.errors?.join(', ')}`);
         }
-      })
-    );
+
+        console.log(`Successfully fetched data for ${token} (Status: ${analysis.status})`);
+      } catch (error) {
+        console.error(`Error fetching data for ${token}:`, error);
+        errors.push(`Failed to fetch data for ${token}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    }));
+
+    if (errors.length > 0) {
+      console.warn('Data fetching warnings:', errors);
+    }
 
     return context;
   }
@@ -100,28 +134,79 @@ export class EnhancedLLM {
   }
 
   private buildSystemPrompt(context: Record<string, ComprehensiveAnalysis>): string {
-    return `You are LIQUBIT, an advanced crypto market analysis AI assistant.
+    const hasPartialData = Object.values(context).some(data => data.status !== 'success');
+    const dataQualityNote = hasPartialData ? 
+      '\nNote: Some market data may be partial or incomplete. Analysis will be based on available data.' : '';
 
-Your capabilities include:
-- Detailed market analysis
+    return `You are LIQUBIT, an advanced crypto market analysis AI assistant powered by real-time market data.${dataQualityNote}
+
+Current Capabilities:
+- Real-time market data analysis
 - Technical indicator interpretation
 - On-chain metrics analysis
 - Social sentiment analysis
-- Risk assessment
+- Risk assessment and prediction
 
 Current Market Context:
 ${this.formatMarketContext(context)}
 
-Guidelines:
-- Always reference the provided market data in your analysis
-- Highlight significant metrics and trends
-- Include confidence levels for predictions
-- Be clear about limitations and uncertainties
-- Format responses for terminal display
-- When making comparisons, use specific data points
-- Highlight any unusual patterns or anomalies
-- Consider both technical and fundamental factors
-`;
+Analysis Guidelines:
+
+1. Market Analysis
+- Always reference specific price points and metrics from the provided data
+- Compare current values to historical trends
+- Highlight significant changes in trading volume or market cap
+- Analyze market dominance and relative performance
+- Consider market sentiment and momentum
+
+2. Technical Analysis
+- Evaluate RSI trends (Oversold < 30, Overbought > 70)
+- Analyze MACD crossovers and momentum
+- Consider EMA trends and potential support/resistance levels
+- Assess volume patterns and their implications
+- Highlight any notable technical patterns
+
+3. Risk Assessment
+- Market volatility evaluation
+- Liquidity analysis
+- Technical risk factors
+- On-chain metrics evaluation
+- Social sentiment impact
+- Provide risk level: Low (1-3), Medium (4-7), High (8-10)
+
+4. Response Format
+- Begin with a clear summary
+- Organize analysis by sections
+- Use bullet points for key metrics
+- Include specific numbers and percentages
+- Reference timeframes
+- End with actionable insights
+
+5. Data Context
+- Acknowledge data limitations
+- Express confidence levels in predictions
+- Note any unusual patterns or anomalies
+- Consider broader market conditions
+- Factor in relevant news or events
+
+Response Style:
+- Professional and data-driven
+- Clear and concise
+- Objective analysis
+- Evidence-based conclusions
+- Educational when relevant
+
+If user preferences are specified:
+- Risk Tolerance: ${this.memory.userPreferences?.riskTolerance || 'medium'}
+- Analysis Depth: ${this.memory.userPreferences?.analysisDepth || 'detailed'}
+
+Remember to:
+- Prioritize accuracy over speculation
+- Highlight both risks and opportunities
+- Maintain objectivity in analysis
+- Consider multiple timeframes
+- Acknowledge market uncertainty
+- Reference specific data points`;
   }
 
   private async processWithGroq(messages: ChatMessage[]): Promise<string> {
@@ -157,15 +242,20 @@ Guidelines:
     try {
       console.log('Processing query:', query);
 
-      // Extract tokens from query
-      const tokens = await this.extractTokensFromQuery(query);
+      const tokens = this.extractTokensFromQuery(query);
       console.log('Extracted tokens:', tokens);
 
-      // Fetch market data for tokens
-      const marketContext = await this.fetchMarketContext(tokens);
-      console.log('Fetched market context:', marketContext);
+      if (tokens.length === 0) {
+        return "I couldn't identify any specific cryptocurrencies in your query. Could you please specify which tokens you'd like to analyze?";
+      }
 
-      // Build messages array with context
+      const marketContext = await this.fetchMarketContext(tokens);
+      if (Object.keys(marketContext).length === 0) {
+        return "I'm having trouble accessing current market data. Please try again in a moment.";
+      }
+
+      console.log('Market context fetched:', Object.keys(marketContext));
+
       const messages: ChatMessage[] = [
         {
           role: 'system',
@@ -173,7 +263,7 @@ Guidelines:
           timestamp: Date.now()
         },
         ...this.memory.conversationHistory.slice(-3).map(msg => ({
-          role: msg.role,
+          role: msg.role as 'user' | 'assistant' | 'system',
           content: msg.content,
           timestamp: msg.timestamp
         })),
@@ -184,11 +274,9 @@ Guidelines:
         }
       ];
 
-      // Process with LLM
       const response = await this.processWithGroq(messages);
-      console.log('Got LLM response:', response);
+      console.log('Got LLM response');
 
-      // Update conversation memory
       this.memory.conversationHistory.push(
         {
           role: 'user',
@@ -203,20 +291,18 @@ Guidelines:
         }
       );
 
-      // Keep memory manageable
       if (this.memory.conversationHistory.length > 10) {
         this.memory.conversationHistory = this.memory.conversationHistory.slice(-10);
       }
 
-      // Update market context in memory
-      this.memory.marketContext = Object.values(marketContext)[0];
       this.memory.lastQuery = query;
       this.memory.recentTokens = tokens;
 
       return response;
+
     } catch (error) {
       console.error('Chat error:', error);
-      throw error;
+      return "I encountered an error while processing your request. Please try again or rephrase your query.";
     }
   }
 
